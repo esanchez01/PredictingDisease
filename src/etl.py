@@ -8,7 +8,7 @@ etl.py [description]
 import pandas as pd
 import numpy as np
 
-# Importing scrips
+# Importing scripts
 import read_data as rd
 
 

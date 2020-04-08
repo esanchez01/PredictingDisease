@@ -1,6 +1,6 @@
 """  Data Reader
 
-This script takes in VCF, BAM, and FASTQ files
+read_data.py takes in VCF, BAM, and FASTQ files
 and converts them into a pandas data frame.
 
 """
