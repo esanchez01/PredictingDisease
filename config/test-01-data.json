@@ -7,5 +7,5 @@
     "maf": 0.2,
     "geno": 0.05,
     "mind": 0.05,
-    "tsv_path": "./data/raw/gwas/gwas-association-downloaded_2020-04-04-EFO_0001645-withChildTraits.tsv"
+    "tsv_path": "./testdata/gwas/gwas-association-downloaded_2020-04-04-EFO_0001645-withChildTraits.tsv"
 }

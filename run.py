@@ -28,7 +28,7 @@ def main(targets):
 
     # make the clean target
     if 'clean' in targets:
-#         shutil.rmtree('data/raw', ignore_errors=True)
+        shutil.rmtree('data/raw', ignore_errors=True)
         shutil.rmtree('data/cleaned', ignore_errors=True)
         shutil.rmtree('data/out', ignore_errors=True)
         shutil.rmtree('data/test', ignore_errors=True)
