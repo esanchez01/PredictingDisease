@@ -90,3 +90,17 @@ def read_fastq(fp):
     fastq_df = pd.DataFrame(fastq_dict)
     
     return fastq_df
+
+
+
+def read_gwas_data(filepath):
+    """
+    Reads GWAS TSV file
+    
+    :param filepath: String representing file path to TSV file
+    """
+    
+    data = pd.read_csv(filepath, sep='\t')
+    relevant_data = data[['CHR_ID', 'CHR_POS', 'SNPS', 'STRONGEST SNP-RISK ALLELE']]
+    relevant_data['RISK ALLELE'] = relevant_data['STRONGEST SNP-RISK ALLELE'].apply(lambda x: x[-1])
+    return relevant_data
