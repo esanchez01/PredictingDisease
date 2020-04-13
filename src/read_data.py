@@ -18,6 +18,7 @@ def read_vcf(fp):
     Reads VCF file
     
     :param fp: String representing file path to VCF file
+    :returns: Pandas dataframe
     """
     
     # Read VCF line by line
@@ -36,6 +37,7 @@ def read_bam(fp):
     Reads BAM file
     
     :param fp: String representing file path to BAM file
+    :returns: Pandas dataframe
     """
     
     # Read file, convert to SAM
@@ -62,6 +64,7 @@ def read_fastq(fp):
     Reads FASTQ file
     
     :param fp: String representing file path to FASTQ file
+    :returns: Pandas dataframe
     """
     
     # Lists to store data frame data
