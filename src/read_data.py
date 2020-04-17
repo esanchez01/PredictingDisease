@@ -1,7 +1,8 @@
 """  Data Reader
 
-read_data.py takes in VCF, BAM, and FASTQ files
-and converts them into a pandas data frame.
+read_data.py reads in various file types including VCF, 
+BAM, FASTQ, and TSV files and converts them into a pandas 
+data frame or extracts useful information from them.
 
 """
 
@@ -105,5 +106,7 @@ def read_gwas_data(filepath):
     
     data = pd.read_csv(filepath, sep='\t')
     relevant_data = data[['CHR_ID', 'CHR_POS', 'SNPS', 'STRONGEST SNP-RISK ALLELE']]
-    relevant_data['RISK ALLELE'] = relevant_data['STRONGEST SNP-RISK ALLELE'].apply(lambda x: x[-1])
+    relevant_data['RISK ALLELE'] = (relevant_data['STRONGEST SNP-RISK ALLELE']
+                                    .apply(lambda x: x[-1])
+                                   )
     return relevant_data

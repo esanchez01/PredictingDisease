@@ -1,6 +1,6 @@
 """ Data Ingestion & Wrangling
 
-etl.py [description]
+etl.py [TODO: description]
 
 """
 
@@ -31,22 +31,23 @@ def prepare_vcf(fp):
     # Reading VCF file into dataframe
     vcf = rd.read_vcf(fp)
     
-    # Creating identifier column
+    # Creating identifier column 
+    # NOTE: Temporary, will be replaced by rsID
     vcf['ID'] = vcf.apply(lambda x: x['#CHROM']+':'+str(x['POS']), axis=1)
 
-    # Dropiing unnecessary columns and transposing
+    # Dropping unnecessary columns and transposing
     drop_cols = ['#CHROM', 'POS', 'REF', 'ALT', 
                  'QUAL', 'FILTER', 'INFO', 'FORMAT']
     vcf = vcf.drop(drop_cols, axis=1).T
 
     # Creating mappings for reference/alternate pairs
-    variant_map = {'0|0': 0, '1|0': 1, '0|1':2, '1|1':3}
+    variant_map = {'0|0': 0, '1|0': 1, '0|1':1, '1|1':2}
 
     # Wrangling data
     vcf.columns = vcf.loc['ID', :]
-    vcf = vcf.drop('ID', axis=0).reset_index()
+    vcf = vcf.drop('ID', axis=0).reset_index(drop=True)
     vcf.columns.name = None
-    vcf = vcf.rename({'index': 'Sample'}, axis=1).replace(variant_map)
+    vcf = vcf.replace(variant_map)
 
     return vcf
 
