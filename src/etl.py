@@ -83,29 +83,6 @@ def get_table_vcf_test(chromosome, outpath, file_type):
             shutil.copyfileobj(f_in, f_out)
 
 
-
-def filter_snps(vcf, gwas_data):
-    """
-    Filters the SNPs found in the VCF file
-    to just the relevant SNPs found in the GWAS
-    data source.
-
-    :param vcf: The input VCF containing all SNPs
-    :param gwas_data: The file containing relevant SNPs from the GWAS
-    :returns: String
-    """
-    
-    gwas_data['CHR_ID'] = pd.to_numeric(gwas_data['CHR_ID'], errors='coerce')
-    gwas_data = gwas_data.dropna(subset=['CHR_ID'])
-    gwas_data['CHR_ID'] = gwas_data['CHR_ID'].astype(int)
-    gwas_data['CHR_POS'] = gwas_data['CHR_POS'].astype(int)
-    filtered_data = gwas_data.merge(vcf, left_on='CHR_POS', right_on='POS')
-    filtered_snps = filtered_data['SNPS'].values.tolist()
-    filtered_snps_str = ', '.join(filtered_snps)
-    return filtered_snps_str
-
-
-
 def filter_vcf(vcf_path, maf, geno, mind, tsv_path, **kwargs):
     """
     Runs script shell file to run plink2 commands to
@@ -117,17 +94,17 @@ def filter_vcf(vcf_path, maf, geno, mind, tsv_path, **kwargs):
     :param mind: The value to filter samples with missing call rates exceeding its value
     :param kwargs: Extra key word arguments
     :param tsv_path: The file path to the file containing relevant SNPs from the GWAS
+    :returns: output of script
     """
     
     # calls helper functions to get the relevant SNPs as a string
     vcf = rd.read_vcf(vcf_path)
-    gwas_data = rd.read_gwas_data(tsv_path)
-    filtered_snps_str = filter_snps(vcf, gwas_data)
+    snps_str = ', '.join(pd.read_csv(tsv_path, sep='\t')['SNPS'])
     
     # opens script shell file
     print('opening script')    
-    cmd_str = ("./src/filter_snps/filter_snps.sh" + " " + 
-               vcf_path + " " + filtered_snps_str + " " + 
+    cmd_str = ("./src/filter_snps/filter_snps.sh " + 
+               vcf_path + " " + snps_str + " " + 
                str(maf) + " " + str(geno) + " " + str(mind))
     proc = sp.Popen(cmd_str, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
     
@@ -135,6 +112,7 @@ def filter_vcf(vcf_path, maf, geno, mind, tsv_path, **kwargs):
     print('running script')
     out_tuple = proc.communicate()
     print('script finished running')
+    return out_tuple
 
 
 
