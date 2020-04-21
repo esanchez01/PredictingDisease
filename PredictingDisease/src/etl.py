@@ -34,7 +34,7 @@ def prepare_vcf(fp):
     
     # Creating identifier column 
     # NOTE: Temporary, will be replaced by rsID
-    vcf['ID'] = vcf.apply(lambda x: x['#CHROM']+':'+str(x['POS']), axis=1)
+    vcf['ID'] = vcf.apply(lambda x: str(x['#CHROM'])+':'+str(x['POS']), axis=1)
 
     # Dropping unnecessary columns and transposing
     drop_cols = ['#CHROM', 'POS', 'REF', 'ALT', 
@@ -151,7 +151,6 @@ def filter_merge_by_chr(folder_path, vcf_files_dict, tsv_path, **kwargs):
             proc = sp.Popen(cmd_str, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
             output = proc.communicate()
             if output[1]:
-                print(str(output[1]))
                 missing_snp = re.findall('rs[0-9]+', str(output[1]))
                 if missing_snp:
                     cur_snps.remove(missing_snp[0])
@@ -163,11 +162,10 @@ def filter_merge_by_chr(folder_path, vcf_files_dict, tsv_path, **kwargs):
     # Merge vcfs
     merge_vcfs(temporary_path)
 
-    # Move merged vcf into target folder
-    shutil.move(temporary_path + "merged.vcf.gz", folder_path)
-
     # Delete temporary folder
     shutil.rmtree(temporary_path, ignore_errors=True)
+
+
 
 def merge_vcfs(folder_path):
     """
