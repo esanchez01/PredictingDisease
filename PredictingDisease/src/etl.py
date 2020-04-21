@@ -8,6 +8,7 @@ etl.py [TODO: description]
 import pandas as pd
 import numpy as np
 import os
+import re
 import gzip
 import shutil
 import subprocess as sp
@@ -33,7 +34,7 @@ def prepare_vcf(fp):
     
     # Creating identifier column 
     # NOTE: Temporary, will be replaced by rsID
-    vcf['ID'] = vcf.apply(lambda x: x['#CHROM']+':'+str(x['POS']), axis=1)
+    vcf['ID'] = vcf.apply(lambda x: str(x['#CHROM'])+':'+str(x['POS']), axis=1)
 
     # Dropping unnecessary columns and transposing
     drop_cols = ['#CHROM', 'POS', 'REF', 'ALT', 
@@ -83,6 +84,7 @@ def get_table_vcf_test(chromosome, outpath, file_type):
             shutil.copyfileobj(f_in, f_out)
 
 
+
 def filter_vcf(vcf_path, maf, geno, mind, tsv_path, **kwargs):
     """
     Runs script shell file to run plink2 commands to
@@ -98,13 +100,12 @@ def filter_vcf(vcf_path, maf, geno, mind, tsv_path, **kwargs):
     """
     
     # calls helper functions to get the relevant SNPs as a string
-    vcf = rd.read_vcf(vcf_path)
     snps_str = ', '.join(pd.read_csv(tsv_path, sep='\t')['SNPS'])
     
     # opens script shell file
-    print('opening script')    
-    cmd_str = ("./src/filter_snps/filter_snps.sh " + 
-               vcf_path + " " + snps_str + " " + 
+    print('opening script')
+    cmd_str = ("./src/scripts/filter_snps.sh " +
+               vcf_path + " " + snps_str + " " +
                str(maf) + " " + str(geno) + " " + str(mind))
     proc = sp.Popen(cmd_str, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
     
@@ -112,6 +113,69 @@ def filter_vcf(vcf_path, maf, geno, mind, tsv_path, **kwargs):
     print('running script')
     out_tuple = proc.communicate()
     print('script finished running')
+    return out_tuple
+
+
+
+def filter_merge_by_chr(folder_path, vcf_files_dict, tsv_path, **kwargs):
+    """
+    Runs script shell file to run plink2 commands to filter each VCF file
+    in specified folder. Filters SNP IDs for the chromosome number each file
+    corresponds to. After filtering each file, merges all VCFs into one
+    file named merged.vcf.gz in the target folder
+
+    :param folder_path: Folder containing the vcf files, and where the merged VCF file will be saved
+    :param vcf_files_dict: Dictionary mapping each chromosome number (1-22) to a VCF file path
+    :param tsv_path: The file path to the file containing relevant SNPs from the GWAS
+    :param kwargs: Extra key word arguments
+    :returns: output of script
+    """
+
+    # Read snps
+    snps = pd.read_csv(tsv_path, sep='\t')
+
+    # Make temporary folder to store filtered VCFs
+    folder_path = folder_path + "/" if folder_path[-1] != "/" else folder_path
+    temporary_path = folder_path + "temp_vcfs/"
+    if not os.path.exists(temporary_path):
+        os.mkdir(temporary_path)
+
+    # Filter each VCF and output filtered VCF into temporary folder
+    for chr_id, vcf_path in vcf_files_dict.items():
+        done = False
+        cur_snps = snps[snps['CHR_ID'] == chr_id]['SNPS'].unique().tolist()
+        while not done:
+            snps_str = ', '.join(cur_snps)
+            cmd_str = "plink2 --vcf " + folder_path + vcf_path + " --max-alleles 2 --make-bed --snps " + snps_str +\
+                      " --recode vcf --out " + temporary_path + "chr_" + chr_id
+            proc = sp.Popen(cmd_str, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
+            output = proc.communicate()
+            if output[1]:
+                missing_snp = re.findall('rs[0-9]+', str(output[1]))
+                if missing_snp:
+                    cur_snps.remove(missing_snp[0])
+                    print("Removed " + missing_snp[0])
+            else:
+                done = True
+
+
+    # Merge vcfs
+    merge_vcfs(temporary_path)
+
+    # Delete temporary folder
+    shutil.rmtree(temporary_path, ignore_errors=True)
+
+
+
+def merge_vcfs(folder_path):
+    """
+    Runs script shell file to merge vcfs into one vcf, creates
+    a file named merged.vcf.gz in the target folder
+
+    :param folder_path: Path to folder containing the vcf files
+    """
+    proc = sp.Popen('./src/scripts/merge_vcfs.sh ' + folder_path, shell=True)
+    out_tuple = proc.communicate()
     return out_tuple
 
 
