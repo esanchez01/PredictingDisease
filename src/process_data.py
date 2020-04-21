@@ -40,6 +40,6 @@ def build_model(df):
     
     # Creating output dictionary
     result_df = pd.DataFrame({'True': y_test, 'Predictions': preds[:,1]})
-    result_dict = result_df.set_index('True')['Predictions'].to_dict()
+    result_dict = result_df.groupby('True')['Predictions'].mean()
     
     return result_dict
