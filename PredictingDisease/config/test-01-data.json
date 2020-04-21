@@ -1,0 +1,11 @@
+{
+    "chromosomes": [22],
+    "samples": [96],
+    "outpath": "./data/raw",
+    "file_types": ["vcf"],
+    "vcf_path": "./data/raw/vcf/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf",
+    "maf": 0.2,
+    "geno": 0.05,
+    "mind": 0.05,
+    "tsv_path": "./testdata/gwas/gwas-association-downloaded_2020-04-04-EFO_0001645-withChildTraits.tsv"
+}
