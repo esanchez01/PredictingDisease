@@ -1,3 +1,6 @@
+# don't check in notebook checkpoints
+.ipynb_checkpoints
+
 # don't check-in data
 data
 
