@@ -1,6 +1,3 @@
-# don't check-in jupyter notebooks
-notebooks
-
 # don't check-in data
 data
 
