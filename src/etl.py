@@ -122,7 +122,7 @@ def filter_merge_by_chr(folder_path, vcf_files_dict, tsv_path, **kwargs):
     Runs script shell file to run plink2 commands to filter each VCF file
     in specified folder. Filters SNP IDs for the chromosome number each file
     corresponds to. After filtering each file, merges all VCFs into one
-    file named merged.vcf.gz in the target folder
+    file named merged.vcf in the target folder
 
     :param folder_path: Folder containing the vcf files, and where the merged VCF file will be saved
     :param vcf_files_dict: Dictionary mapping each chromosome number (1-22) to a VCF file path
