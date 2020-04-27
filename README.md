@@ -14,32 +14,48 @@ PROJECT
 ├── .gitignore
 ├── README.md
 ├── config
-│   ├── data-params.json
-│   └── test-params.json
-├── data
-│   ├── log
-│   ├── out
-│   ├── raw
-│   └── temp
-├── lib
-├── notebooks
-│   └── .gitkeep
+│   ├── download-1000-genomes-data.json
+│   ├── filter-merge-1000-genomes-data.json
+│   ├── test-1000-genomes-data.json
+│   └── test-01-data.json
 ├── references
 │   └── .gitkeep
 ├── requirements.txt
 ├── run.py
-└── src
-    └── etl.py
+├── src
+│   ├── download_data.py
+│   ├── etl.py
+│   ├── process_data.py
+└── └── read_data.py
 ```
+
+### `root`
+
+* `run.py`: Python script to run main command, with the following targets:
+    * `clean`: Cleans the data directory
+    * `data`: Gets the test data
+    * `process`: Filters the data to only contain SNPs for the specified disease
+    * `test-project`: Gets the test data and filters it, to prepare for machine learning
+    * `download-1000-genomes`: Downloads, filters, and merges the 1000 genomes data into data/1000_genomes/
+    * `test-1000-genomes`: Prepares VCF for machine learning and builds a proof-of-concept Logistic Regressor on it
 
 ### `src`
 
-* `etl.py`: Library code that executes tasks useful for getting data.
+* `download_data.py`: Library code that downloads data from an FTP server.
+
+* `etl.py`: Library code that executes tasks useful for getting data and transforming it into a machine-learning-ready format.
+
+* `process_data.py`: Library code that builds a Logistic Regressor given data.
+
+* `read_data.py`: Library code that reads VCF data into a DataFrame to prepare for machine learning.
 
 ### `config`
 
-* `data-params.json`: Common parameters for getting data, serving as
-  inputs to library code.
+* `download-1000-genomes-data.json`: Parameters for downloading data from the 1000 genomes data portal, downloads into data/1000_genomes/
+
+* `filter-merge-1000-genomes-data.json`: Parameters for filtering 1000 genomes VCF files and merging them into one
+
+* `test-1000-genomes-data.json`: Parameters for generating a randomized model on the 1000 genomes data (as proof of concept)
   
 * `test-params.json`: parameters for running small process on small
   test data.
@@ -47,9 +63,3 @@ PROJECT
 ### `references`
 
 * Data Dictionaries, references to external sources
-
-### `notebooks`
-
-* Jupyter notebooks for *analyses*
-  - notebooks are not for data processing; they should import code
-    from `src`.
