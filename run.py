@@ -19,6 +19,7 @@ TEST_DATA_PARAMS = 'config/test-01-data.json'
 DOWNLOAD_1000_GENOMES_PARAMS = 'config/download-1000-genomes-data.json'
 FILTER_MERGE_1000_GENOMES_PARAMS = 'config/filter-merge-1000-genomes-data.json'
 TEST_1000_GENOMES_PARAMS = 'config/test-1000-genomes-data.json'
+SIMULATE_DATA = 'config/simulate.json'
 # TEST_CLEAN_PARAMS = 'config/test-02-clean.json'
 
 
@@ -74,14 +75,15 @@ def main(targets):
         "Building Model..."
         print(build_model(df))
 
-
     # make the test target
-#     if 'test' in targets:
-#         cfg = load_params(TEST_DATA_PARAMS)
-#         [_ for _ in get_seasons(**cfg)]
+    if 'test' in targets:
+        print('simulating data..')
+        cfg = load_params(SIMULATE_DATA)
+        fp = get_data_test_simulated(**cfg)
+        
+        print('testing model..')
+        build_model(fp)
 
-#         cfg = load_params(TEST_CLEAN_PARAMS)
-#         [_ for _ in clean_seasons(**cfg)]
 
     # make the model target
 #     if 'model' in targets:

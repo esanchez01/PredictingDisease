@@ -12,34 +12,35 @@ from sklearn.model_selection import train_test_split
 
 
 
-def build_model(df):
+def build_model(fp):
     """
     Builds a logistic regression model for 
     genetic SNP data
     
-    :param df: Dataframe containing SNP data
-    :returns: Dictionary with classes as keys
-              and mean probability as value
+    :param fp: Filepath to csv file
+    :returns: Model accuracy
     """
     
-    # Creating target column
-    # NOTE: Temporary, will remove when data is available
-    df['has_disease'] = np.random.choice([0,1], size=len(df))
+    df = pd.read_csv(fp)  
     
     # Creating training and test set
-    X = df.drop('has_disease', axis=1)
-    y = df['has_disease']
+    X = df.drop(['Class', 'PRS'], axis=1)
+    y = df['Class']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
     
     # Building model
-    model = LogisticRegression()
+    model = LogisticRegression(solver='liblinear', multi_class='auto')
     model.fit(X_train, y_train)
     
     # Making predictions
-    preds = model.predict_proba(X_test)
+    preds = model.predict(X_test)
     
-    # Creating output dictionary
-    result_df = pd.DataFrame({'True': y_test, 'Predictions': preds[:,1]})
-    result_dict = result_df.groupby('True')['Predictions'].mean()
+    # Determining accuracy
+    accuracy = np.mean(preds==y_test)
     
-    return result_dict
+    num_correct = int(len(df)*accuracy)
+    prompt = ('{} out of {} individuals correctly classified ({} percent)'
+              .format(num_correct, len(df), np.round(accuracy*100, 2)))
+    print(prompt)
+    
+    return accuracy

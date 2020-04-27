@@ -4,6 +4,16 @@ etl.py [TODO: description]
 
 """
 
+# NOTE: The below code is written to work with UK10K data. Unfortunately,
+#       the data has not become available and it's looking like it won't 
+#       be coming in time. Therefore, we decided to simulate the data –
+#       the function simulate_data() does this. This ultimately removes
+#       the need for the rest of the functions, including the driver function.
+#       We apologize for the confusion and the disorganization. We do not want 
+#       to discard everything until we know the UK10K will for sure not be 
+#       coming in time. This will be fixed by the next checkpoint.
+
+
 # Importing libraries
 import pandas as pd
 import numpy as np
@@ -16,6 +26,114 @@ import subprocess as sp
 # Importing scripts
 from src import read_data as rd
 
+
+
+def simulate_data(gwas_fp, maf_fp, n_samples):
+    """
+    Simulates a data set of individuals at different disease 
+    risk levels
+    
+    :param gwas_fp: Filepath to GWAS TSV file
+    :param maf_fp: Filepath to SNP minor allele frequency file
+    :param n_samples: Number of individuals to simulate
+    :returns: Simulated data frame
+    """
+    
+    # Reading and cleaning GWAS data
+    gwas = pd.read_csv(gwas_fp, sep='\t')
+    gwas = gwas.dropna(subset=['OR or BETA'], axis=0)
+    
+    # Reading MAF data
+    maf_cols = ['Variation ID', 'Minor Allele Global Frequency']
+    maf = pd.read_csv(maf_fp, sep='\t', usecols=maf_cols)
+    
+    # Cleaning MAF data
+    maf = maf.drop_duplicates(subset=maf_cols)
+    maf = maf[maf['Minor Allele Global Frequency'] != 'None']
+    maf['Minor Allele Global Frequency'] = (maf['Minor Allele Global Frequency']
+                                               .astype(float))
+
+    # Creating labels that will be associated with disease risk
+    # 0=Low   1=Mid   2=High
+    risk_labels = [0, 1, 2]
+
+    # Defining the probability of being a label
+    # Low=55%   Mid=30%   High=15%
+    risk_prob = [.55, .3, .15]
+
+    # Defining values to increase probability of having SNP
+    # Low=0%   Mid=50%   High=100%
+    risk_bias = [1, 1.5, 2]
+
+    # Simulating
+    indiv_rows_bias = []
+    indiv_class = []
+    N = n_samples
+    for _ in range(N):
+        label = np.random.choice(a=risk_labels, p=risk_prob)
+        bias = risk_bias[label]
+        has_snps = (maf['Minor Allele Global Frequency']
+                    .apply(lambda x: np.random.choice(a=[0,1], p=[1-(x*bias), (x*bias)])))
+        indiv_rows_bias.append(has_snps.values)
+        indiv_class.append(label)
+    
+    # Creating dataframe
+    simulated_df = pd.DataFrame(indiv_rows_bias, columns=maf['Variation ID'])
+    simulated_df.columns.name = ''
+    
+    # Calculating polygenic risk score
+    beta_dict = gwas.set_index('SNPS')['OR or BETA'].to_dict()
+    beta_values = np.array([beta_dict.get(x) for x in simulated_df.columns])
+    prs = simulated_df.apply(lambda x: (x*beta_values).sum(), axis=1)
+    simulated_df['PRS'] = prs
+    
+    # Creating label
+    simulated_df['Class'] = indiv_class
+    
+    return simulated_df
+
+    
+    
+    
+# ---------------------------------------------------------------------
+# Driver Function
+# ---------------------------------------------------------------------
+def get_data_test_simulated(gwas_fp, maf_fp, n_samples, outpath):
+    """
+    Reads in the desired data in test-params.json 
+    and uses the configuration to download 
+    the various file types and corresponding CSV files.
+
+    :param gwas_fp: Filepath to GWAS TSV file
+    :param maf_fp: Filepath to SNP minor allele frequency file
+    :param n_samples: Number of individuals to simulate
+    :outpath: Path to save data frame
+    """
+    
+    # Check whether the specified path exists or not
+    data_folder_path = './data'
+    data_folder_path_exists = os.path.exists(data_folder_path) 
+    if not data_folder_path_exists:
+        os.mkdir(data_folder_path)
+    
+    # Check whether the specified path exists or not
+    path_exists = os.path.exists(outpath) 
+    if not path_exists:
+        os.mkdir(outpath)
+        
+    # Creating simulated data
+    df = simulate_data(gwas_fp, maf_fp, n_samples)
+    
+    # Saving dataframe to outpath
+    fp = outpath+'/simulated_data.csv'
+    df.to_csv(fp, index=False)
+    
+    return fp
+
+    
+    
+
+### CODE BELOW IS FOR UK10K, PLEASE READ NOTE ABOVE ###
 
 
 def prepare_vcf(fp):
