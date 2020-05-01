@@ -24,7 +24,7 @@ import shutil
 import subprocess as sp
 
 # Importing scripts
-from src import read_data as rd
+#from src import read_data as rd
 
 
 
