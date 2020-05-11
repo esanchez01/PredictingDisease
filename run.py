@@ -4,23 +4,13 @@ import sys
 import json
 import shutil
 
-sys.path.insert(0, 'src') # add library code to path
+sys.path.insert(0, 'src')
 from etl import *
-from download_data import *
-from process_data import *
-# from model import driver
+from model import *
 
+TEST_PARAMS = 'config/test-params.json'
+DATA_PARAMS = 'config/data-params.json'
 
-# DATA_PARAMS = 'config/01-data.json'
-# CLEAN_PARAMS = 'config/02-clean.json'
-# MODEL_PARAMS = 'config/03-model.json'
-
-TEST_DATA_PARAMS = 'config/test-01-data.json'
-DOWNLOAD_1000_GENOMES_PARAMS = 'config/download-1000-genomes-data.json'
-FILTER_MERGE_1000_GENOMES_PARAMS = 'config/filter-merge-1000-genomes-data.json'
-TEST_1000_GENOMES_PARAMS = 'config/test-1000-genomes-data.json'
-SIMULATE_DATA = 'config/simulate.json'
-# TEST_CLEAN_PARAMS = 'config/test-02-clean.json'
 
 
 def load_params(fp):
@@ -29,66 +19,58 @@ def load_params(fp):
 
     return param
 
+def create_fp(fp, fname):
+    return fp+'/{}.csv'.format(fname)
+    
 
 def main(targets):
 
     # make the clean target
     if 'clean' in targets:
-        shutil.rmtree('data/raw', ignore_errors=True)
-        shutil.rmtree('data/cleaned', ignore_errors=True)
-        shutil.rmtree('data/out', ignore_errors=True)
-        shutil.rmtree('data/test', ignore_errors=True)
-        shutil.rmtree('data/1000genomes', ignore_errors=True)
+        shutil.rmtree('data/',ignore_errors=True)
+        
 
     # make the data target
     if 'data' in targets:
-        print('running data target')
-        cfg = load_params(TEST_DATA_PARAMS)
-        get_data_test(**cfg)
+        cfg = load_params(DATA_PARAMS)
+        get_gwas_trait(**cfg)
         
-    # make the process target
-    if 'process' in targets:
-        print('running process target')
-        cfg = load_params(TEST_DATA_PARAMS)
-        filter_vcf(**cfg)
+        
+    # make the simulate target
+    if 'simulate' in targets:
+        cfg = load_params(DATA_PARAMS)
+        outpath = cfg['outpath']
+        n_samples = cfg['simulated_data']['n_samples']
+        gwas = cfg['simulated_data']['gwas']
+        gwas_fp = create_fp(outpath, gwas)
+        simulate_data(outpath, gwas_fp, n_samples)
+        
+ 
+    # make the model target
+    if 'model' in targets:
+        cfg = load_params(DATA_PARAMS)
+        outpath = cfg['outpath']
+        simulate_name = 'simulated_data'
+        sim_fp = create_fp(outpath, simulate_name)
+        model_name = cfg['model_data']['gwas']
+        model_fp = create_fp(outpath, model_name)
+        build_model(sim_fp, model_fp)
+        
         
     # make the test-project target
     if 'test-project' in targets:
-        print('running test-project target')
-        cfg = load_params(TEST_DATA_PARAMS)
-        get_data_test(**cfg)
-        filter_vcf(**cfg)
-
-    # make the download-1000-genomes target
-    if 'download-1000-genomes' in targets:
-        print('running download-1000-genomes target')
-        cfg = load_params(DOWNLOAD_1000_GENOMES_PARAMS)
-        download_ftp_data(**cfg)
-        cfg = load_params(FILTER_MERGE_1000_GENOMES_PARAMS)
-        filter_merge_by_chr(**cfg)
-
-    # make the test-1000-genomes target
-    if 'test-1000-genomes' in targets:
-        print('running test-1000-genomes target')
-        cfg = load_params(TEST_1000_GENOMES_PARAMS)
-        df = prepare_vcf(**cfg)
-        "Building Model..."
-        print(build_model(df))
-
-    # make the test target
-    if 'test' in targets:
-        print('simulating data..')
-        cfg = load_params(SIMULATE_DATA)
-        fp = get_data_test_simulated(**cfg)
+        cfg = load_params(TEST_PARAMS)
+        fps = get_data(**cfg, test=True)
         
-        print('testing model..')
-        build_model(fp)
-
-
-    # make the model target
-#     if 'model' in targets:
-#         cfg = load_params(MODEL_PARAMS)
-#         driver(**cfg)
+        build_model(fps[0], fps[1])
+        
+        
+    # make the test-project target
+    if 'run-project' in targets:
+        cfg = load_params(DATA_PARAMS)
+        fps = get_data(**cfg)
+        
+        build_model(fps[0], fps[1])
 
     return
 

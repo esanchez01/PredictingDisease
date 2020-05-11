@@ -12,19 +12,33 @@ from sklearn.model_selection import train_test_split
 
 
 
-def build_model(fp):
+def build_model(sim_fp, model_fp):
     """
     Builds a logistic regression model for 
     genetic SNP data
     
-    :param fp: Filepath to csv file
+    :param fp: Filepath to simulated data
+    :param fp: Filepath to model GWAS data
+    :param cols: SNP column names to keep
     :returns: Model accuracy
     """
     
-    df = pd.read_csv(fp)  
+    print('Building and testing model..')
+    
+    label_cols = ['Class', 'PRS']
+    
+    # Loading in model GWAS data
+    model_data = pd.read_csv(model_fp, usecols=['variant_id'])
+    model_snps = model_data['variant_id'].unique()
+    
+    # Loading in simulated data and filtering to model SNPs
+    df = pd.read_csv(sim_fp)
+    sim_snps = df.drop(label_cols, axis=1).columns
+    keep_cols = list(set(sim_snps).intersection(model_snps))
+    df = df[keep_cols+label_cols]
     
     # Creating training and test set
-    X = df.drop(['Class', 'PRS'], axis=1)
+    X = df.drop(label_cols, axis=1)
     y = df['Class']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
     

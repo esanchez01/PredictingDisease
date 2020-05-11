@@ -1,0 +1,10 @@
+{
+    "simulated_data": {
+        "gwas": "testdata/gwas/gwas_simulate.csv",
+        "n_samples": 1000
+        },
+    "model_data": {
+        "gwas": "testdata/gwas/gwas_model.csv"
+        },
+    "outpath": "./data/out"
+}
