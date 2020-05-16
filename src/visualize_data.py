@@ -46,12 +46,9 @@ def plot_risk_across_classes(fp):
     
     simulated_bias_df = pd.read_csv(fp)
     
-    sns.kdeplot(simulated_bias_df[simulated_bias_df['Class'] == 0]['PRS'], 
-                label="Low Risk")
-    sns.kdeplot(simulated_bias_df[simulated_bias_df['Class'] == 1]['PRS'], 
-                label="Medium Risk")
-    sns.kdeplot(simulated_bias_df[simulated_bias_df['Class'] == 2]['PRS'], 
-                label="High Risk")
+    sns.kdeplot(simulated_bias_df[simulated_bias_df['Class'] == 0]['PRS'], label="Low Risk")
+    sns.kdeplot(simulated_bias_df[simulated_bias_df['Class'] == 1]['PRS'], label="Medium Risk")
+    sns.kdeplot(simulated_bias_df[simulated_bias_df['Class'] == 2]['PRS'], label="High Risk")
     plt.title('Distribution of PRS Across Classes')
     plt.xlabel('Polygenic Risk Score')
     plt.ylabel('Normalized Frequency');
