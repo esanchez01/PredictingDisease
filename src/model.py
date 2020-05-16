@@ -7,7 +7,7 @@ process_data.py [TODO: description]
 # Importing libraries
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 
 
@@ -43,7 +43,7 @@ def build_model(sim_fp, model_fp):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
     
     # Building model
-    model = LogisticRegression(solver='liblinear', multi_class='auto')
+    model = SVC(C=10, tol=0.1, gamma='auto')
     model.fit(X_train, y_train)
     
     # Making predictions
