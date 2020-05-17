@@ -106,6 +106,8 @@ def plot_multiclass_roc(clf_name, clf, X_test, y_test, n_classes, figsize=(17, 6
     ax.grid(alpha=.4)
     sns.despine()
     plt.show()
+    
+    return fig
 
     
     
@@ -192,3 +194,5 @@ def plot_precision_recall(clf_name, clf, X_test, y_test, n_classes, figsize=(7, 
     plt.title('Extension of Precision-Recall Curve to Multi-Class for ' + clf_name)
     plt.legend(lines, labels, loc=(0, -.38), prop=dict(size=14))
     plt.show()
+    
+    return fig

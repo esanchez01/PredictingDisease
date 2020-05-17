@@ -54,7 +54,7 @@ def main(targets):
         sim_fp = create_fp(outpath, simulate_name)
         model_name = cfg['model_data']['gwas']
         model_fp = create_fp(outpath, model_name)
-        build_model(sim_fp, model_fp)
+        build_model(sim_fp, model_fp, cfg['outpath'])
         
         
     # make the test-project target
@@ -62,7 +62,7 @@ def main(targets):
         cfg = load_params(TEST_PARAMS)
         fps = get_data(**cfg, test=True)
         
-        build_model(fps[0], fps[1])
+        build_model(fps[0], fps[1], cfg['outpath'])
         
         
     # make the test-project target
@@ -70,7 +70,7 @@ def main(targets):
         cfg = load_params(DATA_PARAMS)
         fps = get_data(**cfg)
         
-        build_model(fps[0], fps[1])
+        build_model(fps[0], fps[1], cfg['outpath'])
 
     return
 

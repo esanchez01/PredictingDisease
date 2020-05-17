@@ -1,6 +1,8 @@
 """ Data Ingestion & Wrangling
 
-etl.py [TODO: description]
+etl.py: Library code to ingest data from the GWAS Catalog 
+(https://www.ebi.ac.uk/gwas/), creates simulated populations 
+and prepares for model building.
 
 """
 
@@ -15,6 +17,7 @@ import shutil
 import subprocess as sp
 import requests
 import json
+
 
 
 def get_gwas_trait(simulated_data, model_data, outpath):

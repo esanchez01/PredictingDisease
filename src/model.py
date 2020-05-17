@@ -1,6 +1,8 @@
 """ Data Processing
 
-process_data.py [TODO: description]
+process_data.py: Library code to construct a Support Vector 
+Machine model on population SNP data and generate/save results 
+for the model's performance.
 
 """
 
@@ -9,10 +11,14 @@ import pandas as pd
 import numpy as np
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+
+# Importing scripts
+import visualize_data as vd
 
 
 
-def build_model(sim_fp, model_fp):
+def build_model(sim_fp, model_fp, outpath):
     """
     Builds a logistic regression model for 
     genetic SNP data
@@ -51,10 +57,30 @@ def build_model(sim_fp, model_fp):
     
     # Determining accuracy
     accuracy = np.mean(preds==y_test)
+    print('\nSummary Results:')
     
+    # Printing immediate results to user
     num_correct = int(len(df)*accuracy)
-    prompt = ('{} out of {} individuals correctly classified ({} percent)'
-              .format(num_correct, len(df), np.round(accuracy*100, 2)))
+    rounded_accuracy = np.round(accuracy*100, 2)
+    prompt = ('{}: {} out of {} individuals correctly classified ({} percent)'
+              .format('Accuracy', num_correct, len(df), rounded_accuracy))
     print(prompt)
+    
+    # Saving model plots
+    roc = vd.plot_multiclass_roc('SVM', model, X_test, y_test, 3, (10, 6))
+    roc.savefig(outpath+'/ROC_plot.png')
+    
+    pr = vd.plot_precision_recall('SVM', model, X_test, y_test, 3)
+    pr.savefig(outpath+'/PR_plot.png')
+    
+    # Saving classification report
+    target_names = ['Low Risk', 'Medium Risk', 'High Risk']
+    c_report = pd.DataFrame(classification_report(y_test, preds, 
+                                     target_names=target_names, 
+                                     output_dict=True))
+    c_report.to_csv(outpath+'/report.csv', index=True)
+    
+    print('\nFull model results saved at {}'.format(outpath))
+    
     
     return accuracy
