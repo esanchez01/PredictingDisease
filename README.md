@@ -10,55 +10,51 @@ Data Science Senior Project: Predicting Disease From Genetic Variation
 The project consists of these portions:
 ```
 PROJECT
-├── .env
+├── config
+│   ├── data-params.json
+│   ├── test-params.json
+│   └── env.json
+├── notebooks
+│   ├── Build_Model.ipynb
+│   ├── Simulate_Data.ipynb
+│   └── Visualize_Data.ipynb
+├── src
+│   ├── etl.py
+│   ├── model.py
+|   └── visualize_data.py
+├── testdata
+|   └── gwas
 ├── .gitignore
 ├── README.md
-├── config
-│   ├── download-1000-genomes-data.json
-│   ├── filter-merge-1000-genomes-data.json
-│   ├── test-1000-genomes-data.json
-│   └── test-01-data.json
-├── references
-│   └── .gitkeep
 ├── requirements.txt
-├── run.py
-├── src
-│   ├── download_data.py
-│   ├── etl.py
-│   ├── process_data.py
-└── └── read_data.py
+└── run.py
 ```
 
 ### `root`
 
 * `run.py`: Python script to run main command, with the following targets:
     * `clean`: Cleans the data directory
-    * `data`: Gets the test data
-    * `process`: Filters the data to only contain SNPs for the specified disease
-    * `test-project`: Gets the test data and filters it, to prepare for machine learning
-    * `download-1000-genomes`: Downloads, filters, and merges the 1000 genomes data into data/1000_genomes/
-    * `test-1000-genomes`: Prepares VCF for machine learning and builds a proof-of-concept Logistic Regressor on it
+    * `data`: Gets the data from GWAS Catalog according to data-params.json
+    * `simulate`: Simulates SNP population using ingested GWAS Catalog data
+    * `model`: Constructs and tests model on ingesting and wrangled data
+    * `test-project`: Tests project using test data
+    * `run-project`: Runs entire project according to cofig files
 
 ### `src`
 
-* `download_data.py`: Library code that downloads data from an FTP server.
-
 * `etl.py`: Library code that executes tasks useful for getting data and transforming it into a machine-learning-ready format.
 
-* `process_data.py`: Library code that builds a Logistic Regressor given data.
+* `model.py`: Library code that builds and tests a Support Vector Machine given data.
 
-* `read_data.py`: Library code that reads VCF data into a DataFrame to prepare for machine learning.
+* `visualize_data.py`: Library code that generates a variety of visualization that are useful for analysis.
 
 ### `config`
 
-* `download-1000-genomes-data.json`: Parameters for downloading data from the 1000 genomes data portal, downloads into data/1000_genomes/
+* `data-params.json`: Parameters for downloading data from the GWAS Catalog and preparing for model building
 
-* `filter-merge-1000-genomes-data.json`: Parameters for filtering 1000 genomes VCF files and merging them into one
+* `test-params.json`: Parameters for preparing test data for model building
 
-* `test-1000-genomes-data.json`: Parameters for generating a randomized model on the 1000 genomes data (as proof of concept)
-  
-* `test-params.json`: parameters for running small process on small
-  test data.
+* `env.json`: Environment information
 
 ### `references`
 
