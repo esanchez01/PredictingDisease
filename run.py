@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import json
 import shutil
@@ -20,30 +21,35 @@ def load_params(fp):
     return param
 
 def create_fp(fp, fname):
-    return fp+'/{}.csv'.format(fname)
+    return fp + f'/{fname}.csv'
     
 
 def main(targets):
 
     # make the clean target
     if 'clean' in targets:
-        shutil.rmtree('data/',ignore_errors=True)
+        shutil.rmtree('data/', ignore_errors=True)
         
 
     # make the data target
     if 'data' in targets:
         cfg = load_params(DATA_PARAMS)
-        get_gwas_trait(**cfg)
+        if not os.path.exists(cfg['outpath']):
+            os.makedirs(cfg['outpath'])
+        for disease, params in cfg['diseases'].items():
+            diseasepath = cfg['outpath'] + f'/{disease}'
+            get_gwas_trait(params['train_data'], params['test_data'], cfg['max_p_value'], diseasepath)
         
         
     # make the simulate target
     if 'simulate' in targets:
         cfg = load_params(DATA_PARAMS)
         outpath = cfg['outpath']
-        n_samples = cfg['simulated_data']['n_samples']
-        gwas = cfg['simulated_data']['gwas']
-        gwas_fp = create_fp(outpath, gwas)
-        simulate_data(outpath, gwas_fp, n_samples)
+        n_samples = cfg['n_samples']
+        for disease, params in cfg['diseases'].items():
+            diseasepath = cfg['outpath'] + f'/{disease}'
+            gwas_fp = create_fp(diseasepath, params['train_data'])
+            simulate_data(diseasepath, gwas_fp, n_samples)
         
  
     # make the model target
@@ -51,26 +57,35 @@ def main(targets):
         cfg = load_params(DATA_PARAMS)
         outpath = cfg['outpath']
         simulate_name = 'simulated_data'
-        sim_fp = create_fp(outpath, simulate_name)
-        model_name = cfg['model_data']['gwas']
-        model_fp = create_fp(outpath, model_name)
-        build_model(sim_fp, model_fp, cfg['outpath'])
+        for disease, params in cfg['diseases'].items():
+            diseasepath = cfg['outpath'] + f'/{disease}'
+            sim_fp = create_fp(diseasepath, simulate_name)
+            model_fp = create_fp(diseasepath, params['test_data'])
+            build_model(sim_fp, model_fp, diseasepath)
         
         
     # make the test-project target
     if 'test-project' in targets:
         cfg = load_params(TEST_PARAMS)
-        fps = get_data(**cfg, test=True)
+        if not os.path.exists(cfg['outpath']):
+            os.makedirs(cfg['outpath'])
+        for disease, params in cfg['diseases'].items():
+            diseasepath = cfg['outpath'] + f'/{disease}'
+            fps = get_data(params['train_data'], params['test_data'], diseasepath,
+                           cfg['max_p_value'], cfg['n_samples'])
+            build_model(fps[0], fps[1], diseasepath)
         
-        build_model(fps[0], fps[1], cfg['outpath'])
         
-        
-    # make the test-project target
+    # make the run-project target
     if 'run-project' in targets:
-        cfg = load_params(DATA_PARAMS)
-        fps = get_data(**cfg)
-        
-        build_model(fps[0], fps[1], cfg['outpath'])
+        cfg = load_params(DISEASE_PARAMS)
+        if not os.path.exists(cfg['outpath']):
+            os.makedirs(cfg['outpath'])
+        for disease, params in cfg['diseases'].items():
+            diseasepath = cfg['outpath'] + f'/{disease}'
+            fps = get_data(params['train_data'], params['test_data'], diseasepath,
+                           cfg['max_p_value'], cfg['n_samples'])
+            build_model(fps[0], fps[1], diseasepath)
 
     return
 

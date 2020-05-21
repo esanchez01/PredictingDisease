@@ -9,7 +9,15 @@ for the model's performance.
 # Importing libraries
 import pandas as pd
 import numpy as np
+import json
+# Models
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+# Model utils
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 
@@ -48,39 +56,62 @@ def build_model(sim_fp, model_fp, outpath):
     y = df['Class']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
     
-    # Building model
-    model = SVC(C=10, tol=0.1, gamma='auto')
+    model_params = json.load(open('config/model-params.json', 'r'))
+    results = pd.DataFrame()
+    # Iterate through models
+    modelNames = {
+        "LogisticRegression": LogisticRegression,
+        "KNeighborsClassifier": KNeighborsClassifier,
+        "SVC": SVC,
+        "GaussianNB": GaussianNB,
+        "RandomForestClassifier": RandomForestClassifier,
+        "DecisionTreeClassifier": DecisionTreeClassifier
+    }
+    
+    finalModels = {}
+    for name, model in modelNames.items():
+        model_fit, model_results = get_model_results(model_params[name], name,
+                                          model, X_train, X_test, y_train, y_test)
+        model_results['Model Type'] = name
+        results = results.append(model_results)
+        finalModels[name] = model_fit
+    
+    
+    
+    
+    # Saving model plots for SVM
+    roc = vd.plot_multiclass_roc('SVM', finalModels['SVC'], X_test, y_test, 3, (10, 6))
+    roc.savefig(outpath+'/SVM_ROC_plot.png')
+    
+    pr = vd.plot_precision_recall('SVM', finalModels['SVC'], X_test, y_test, 3)
+    pr.savefig(outpath+'/SVM_PR_plot.png')
+    
+    results.to_csv(outpath+'/results.csv')
+    print('\nFull model results saved at {}'.format(outpath))
+    
+    
+
+def get_model_results(model_params, model_name, sklearn_model, X_train, X_test, y_train, y_test):
+    """
+    Fits the given model and returns the fit model and results
+    
+    :param model_params: parameters to use for the model
+    :param model_name: name of the model type
+    :param sklearn_model: pointer to sklearn model class
+    :param X_train: X training set
+    :param X_test: X test set
+    :param y_train: y training set
+    :param y_test: y test set
+    :returns: tuple of the model and the model results
+    """
+    model = sklearn_model(**model_params)
     model.fit(X_train, y_train)
     
     # Making predictions
     preds = model.predict(X_test)
     
-    # Determining accuracy
-    accuracy = np.mean(preds==y_test)
-    print('\nSummary Results:')
-    
-    # Printing immediate results to user
-    num_correct = int(len(df)*accuracy)
-    rounded_accuracy = np.round(accuracy*100, 2)
-    prompt = ('{}: {} out of {} individuals correctly classified ({} percent)'
-              .format('Accuracy', num_correct, len(df), rounded_accuracy))
-    print(prompt)
-    
-    # Saving model plots
-    roc = vd.plot_multiclass_roc('SVM', model, X_test, y_test, 3, (10, 6))
-    roc.savefig(outpath+'/ROC_plot.png')
-    
-    pr = vd.plot_precision_recall('SVM', model, X_test, y_test, 3)
-    pr.savefig(outpath+'/PR_plot.png')
-    
     # Saving classification report
     target_names = ['Low Risk', 'Medium Risk', 'High Risk']
-    c_report = pd.DataFrame(classification_report(y_test, preds, 
+    return (model, pd.DataFrame(classification_report(y_test, preds, 
                                      target_names=target_names, 
-                                     output_dict=True))
-    c_report.to_csv(outpath+'/report.csv', index=True)
-    
-    print('\nFull model results saved at {}'.format(outpath))
-    
-    
-    return accuracy
+                                     output_dict=True)))
