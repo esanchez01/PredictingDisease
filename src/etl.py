@@ -103,7 +103,10 @@ def simulate_data(outpath, gwas_fp, n_samples):
     risk_prob = [.6, .3, .1]
 
     # Defining values to scale probability of having SNP
-    risk_bias = [.3, .6, 1]
+    low_risk_bias = np.arange(.1, .5, .05)
+    medium_risk_bias = np.arange(.5, .76, .05)
+    high_risk_bias = np.arange(.75, 1, .05)
+    risk_bias = [low_risk_bias, medium_risk_bias, high_risk_bias]
 
     # Simulating
     indiv_rows_bias = []
@@ -111,7 +114,7 @@ def simulate_data(outpath, gwas_fp, n_samples):
     N = n_samples
     for _ in range(N):
         label = np.random.choice(a=risk_labels, p=risk_prob)
-        bias = risk_bias[label]
+        bias = np.random.choice(risk_bias[label])
         has_snps = (gwas['effect_allele_frequency']
                     .apply(lambda x: 
                            np.random.choice(a=[0,1], p=[1-(x*bias), (x*bias)])))
