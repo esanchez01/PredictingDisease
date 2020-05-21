@@ -20,14 +20,12 @@ import json
 
 
 
-def get_gwas_trait(simulated_data, model_data, outpath):
+def get_gwas_trait(train_id, test_id, max_p_value, outpath):
     """
     Gets the gwas data for the given trait ID
     
-    :param simulated_data: Dictionary containing ID of GWAS data for 
-                           simulation and max p value for the data
-    :param model_data: Dictionary containing ID of GWAS data for 
-                       model building and max p value for the data
+    :param train_id: EFO ID of trait to use for training data
+    :param test_id: EFO ID of trait to use for test data
     :param outpath: Path to save data
     """
     print('Collecting GWAS data..')
@@ -42,8 +40,8 @@ def get_gwas_trait(simulated_data, model_data, outpath):
     path_exists = os.path.exists(outpath) 
     if not path_exists:
         os.makedirs(outpath)
-                
-    for data in [simulated_data, model_data]:
+    fps = []
+    for ID in [train_id, test_id]:
         
         # dictionary to contain data and build DataFrame
         dfdict = {'variant_id': [], 'beta': [], 
@@ -54,18 +52,22 @@ def get_gwas_trait(simulated_data, model_data, outpath):
         offset, page = 1000, 0
 
         # First page
-        ID = data["gwas"]
-        p_upper = data["max_p_value"]
-        req = requests.get(f'https://www.ebi.ac.uk/gwas/summary-statistics/api/traits/{ID}' +
-                           f'/associations?start={page}&size={offset}&p_upper={p_upper}').content
-        snps = json.loads(req)['_embedded']['associations']
-        add_snps_to_dfdict(snps, dfdict)
+        try:
+            req = requests.get(f'https://www.ebi.ac.uk/gwas/summary-statistics/api/traits/{ID}' +
+                               f'/associations?start={page}&size={offset}&p_upper={max_p_value}').content
+            snps = json.loads(req)['_embedded']['associations']
+            add_snps_to_dfdict(snps, dfdict)
+        
+        # If GWAS study does not have available summary statistics
+        except:
+            raise Exception(f'GWAS Study with ID {ID} is not available on summary statistics API.\
+                              Try manually downloading the Catalog Data.')
 
         # Continually query pages from the API until last page is reached
         while len(snps) == offset:
             page += offset
             req = requests.get(f'https://www.ebi.ac.uk/gwas/summary-statistics/api/traits/{ID}' +
-                               f'/associations?start={page}&size={offset}&p_upper={p_upper}').content
+                               f'/associations?start={page}&size={offset}&p_upper={max_p_value}').content
             try:
                 snps = json.loads(req)['_embedded']['associations']
                 add_snps_to_dfdict(snps, dfdict)
@@ -74,9 +76,10 @@ def get_gwas_trait(simulated_data, model_data, outpath):
 
         # Saving data
         snp_df = pd.DataFrame(dfdict)
-        snp_df.to_csv(outpath+'/{}.csv'.format(ID), index=False)
-        
-        print('- {} collected.'.format(ID))
+        snp_df.to_csv(outpath+f'/{ID}.csv', index=False)
+        fps.append(outpath+f'/{ID}.csv')
+        print(f'- {ID} collected.')
+    return fps
 
 
 
@@ -86,7 +89,7 @@ def simulate_data(outpath, gwas_fp, n_samples):
     risk levels
     
     :param outpath: File path to save simulated data
-    :param gwas_fp: Filepath to GWAS TSV file
+    :param gwas_fp: Filepath to GWAS TSV/CSV file
     :param n_samples: Number of individuals to simulate
     :returns: Simulated data filepath
     """
@@ -146,19 +149,23 @@ def simulate_data(outpath, gwas_fp, n_samples):
 # Driver Function
 # ---------------------------------------------------------------------
 
-def get_data(simulated_data, model_data, outpath, test=False):
+def get_data(train_data, test_data, outpath, max_p_value, n_samples, test=False):
     """
     Reads in the desired data in test-params.json 
     and uses the configuration to download 
     the various file types and corresponding CSV files.
 
-    :param simulated_data: Dictionary containing ID of GWAS data for 
-                           simulation, max p value for the data, and
-                           the number of samples to simulate
-    :param model_data: Dictionary containing ID of GWAS data for 
-                       model building and max p value for the data
+    :param train_data: EFO ID of trait inside GWAS to download
+                          summary statistics to build simulation
+                          for model building, or path to GWAS TSV
+    :param test_data: EFO ID of trait inside GWAS to download
+                       summary statistics to build simulation
+                       for model evaluation, or path to GWAS TSV
+    :outpath: Path to save simulated data for training and testing
+    :max_p_value: p value threshold value for SNPs to be included
+    :n_samples: Number of samples to produce
     :param test: Whether function call is for testing
-    :outpath: Path to save GWAS data
+    
     :returns: File paths to simulated data and model GWAS data
     """
     
@@ -167,24 +174,12 @@ def get_data(simulated_data, model_data, outpath, test=False):
     if not path_exists:
         os.makedirs(outpath)
     
-    if not test:
+    # If EFO ids are passed in to function, first get CSV files for the traits
+    if train_data[:3] == 'EFO':
         # Collecting GWAS data
-        get_gwas_trait(simulated_data, model_data, outpath)
+        train_data, test_data = get_gwas_trait(train_data, test_data, max_p_value, outpath)
     
     # Creating simulated data
-    if not test:
-        gwas_fp = outpath+'/{}.csv'.format(simulated_data['gwas'])
-    else:
-        gwas_fp = simulated_data['gwas']
-    simulate_data(outpath, gwas_fp, simulated_data['n_samples'])
+    sim_fp = simulate_data(outpath, train_data, n_samples)
     
-    # Determining simulated data filepath
-    sim_fp = outpath+'/simulated_data.csv'
-    
-    # Determining model data filepath
-    if not test:
-        model_fp = outpath+'/{}.csv'.format(model_data['gwas'])
-    else:
-        model_fp = model_data['gwas']
-    
-    return sim_fp, model_fp
+    return sim_fp, test_data
