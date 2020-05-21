@@ -156,8 +156,6 @@ def plot_precision_recall(clf_name, clf, X_test, y_test, n_classes, figsize=(7, 
         y_score.ravel())
     average_precision["micro"] = average_precision_score(y_test_dummies, y_score,
                                                          average="micro")
-    print('Average precision score, micro-averaged over all classes: {0:0.2f}'
-          .format(average_precision["micro"]))   
     
     # setup plot details
     colors = cycle(['navy', 'turquoise', 'darkorange', 'cornflowerblue', 'teal'])

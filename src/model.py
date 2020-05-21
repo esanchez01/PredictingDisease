@@ -20,6 +20,9 @@ from sklearn.tree import DecisionTreeClassifier
 # Model utils
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
+# Ignoring warnings
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 # Importing scripts
 import visualize_data as vd

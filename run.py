@@ -78,7 +78,7 @@ def main(targets):
         
     # make the run-project target
     if 'run-project' in targets:
-        cfg = load_params(DISEASE_PARAMS)
+        cfg = load_params(DATA_PARAMS)
         if not os.path.exists(cfg['outpath']):
             os.makedirs(cfg['outpath'])
         for disease, params in cfg['diseases'].items():
