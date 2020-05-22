@@ -11,7 +11,8 @@ from model import *
 
 TEST_PARAMS = 'config/test-params.json'
 DATA_PARAMS = 'config/data-params.json'
-
+TRAIN_NAME = 'simulated_train'
+TEST_NAME = 'simulated_test'
 
 
 def load_params(fp):
@@ -42,28 +43,45 @@ def main(targets):
         
         
     # make the simulate target
-    if 'simulate' in targets:
+    if 'simulate-one' in targets:
         cfg = load_params(DATA_PARAMS)
         outpath = cfg['outpath']
         n_samples = cfg['n_samples']
         for disease, params in cfg['diseases'].items():
             diseasepath = cfg['outpath'] + f'/{disease}'
-            gwas_fp = create_fp(diseasepath, params['train_data'])
-            simulate_data(diseasepath, gwas_fp, n_samples)
-        
- 
+            train_fp = create_fp(diseasepath, params['train_data'])
+            simulate_data(diseasepath, TRAIN_NAME, train_fp, n_samples)
+
+
+    # make the simulate-both target
+    if 'simulate-both' in targets:
+        cfg = load_params(DATA_PARAMS)
+        outpath = cfg['outpath']
+        n_samples = cfg['n_samples']
+        for disease, params in cfg['diseases'].items():
+            diseasepath = cfg['outpath'] + f'/{disease}'
+            train_fp = create_fp(diseasepath, params['train_data'])
+            train_sim = simulate_data(diseasepath, TRAIN_NAME, train_fp, n_samples, use_beta=True)
+            test_fp = create_fp(diseasepath, params['test_data'])
+            test_sim = simulate_data(diseasepath, TEST_NAME, test_fp, n_samples, use_beta=True)
+
+
     # make the model target
     if 'model' in targets:
         cfg = load_params(DATA_PARAMS)
         outpath = cfg['outpath']
-        simulate_name = 'simulated_data'
         for disease, params in cfg['diseases'].items():
             diseasepath = cfg['outpath'] + f'/{disease}'
-            sim_fp = create_fp(diseasepath, simulate_name)
-            model_fp = create_fp(diseasepath, params['test_data'])
-            build_model(sim_fp, model_fp, diseasepath)
-        
-        
+            # Get filepaths for training GWAS simulated data and test GWAS summary data
+            train_fp = create_fp(diseasepath, TRAIN_NAME)
+            test_gwas_fp = create_fp(diseasepath, params['test_data'])
+            # If we simulated test data as well, then test model using that
+            test_sim_fp = create_fp(diseasepath, TEST_NAME + '.csv')
+            if not os.path.exists(test_sim_fp):
+                test_sim_fp = None
+            build_model(train_fp, test_gwas_fp, diseasepath, test_sim_fp)
+
+
     # make the test-project target
     if 'test-project' in targets:
         cfg = load_params(TEST_PARAMS)
@@ -74,8 +92,8 @@ def main(targets):
             fps = get_data(params['train_data'], params['test_data'], diseasepath,
                            cfg['max_p_value'], cfg['n_samples'])
             build_model(fps[0], fps[1], diseasepath)
-        
-        
+
+
     # make the run-project target
     if 'run-project' in targets:
         cfg = load_params(DATA_PARAMS)

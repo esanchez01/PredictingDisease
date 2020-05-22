@@ -13,6 +13,7 @@ import numpy as np
 import os
 import re
 import gzip
+from scipy.stats import percentileofscore
 import shutil
 import subprocess as sp
 import requests
@@ -83,7 +84,7 @@ def get_gwas_trait(train_id, test_id, max_p_value, outpath):
 
 
 
-def simulate_data(outpath, gwas_fp, n_samples):
+def simulate_data(outpath, outname, gwas_fp, n_samples, use_beta=False):
     """
     Simulates a data set of individuals at different disease 
     risk levels
@@ -122,7 +123,8 @@ def simulate_data(outpath, gwas_fp, n_samples):
                     .apply(lambda x: 
                            np.random.choice(a=[0,1], p=[1-(x*bias), (x*bias)])))
         indiv_rows_bias.append(has_snps.values)
-        indiv_class.append(label)
+        if not use_beta:
+            indiv_class.append(label)
     
     # Creating dataframe
     simulated_df = pd.DataFrame(indiv_rows_bias, columns=gwas['variant_id'])
@@ -133,12 +135,27 @@ def simulate_data(outpath, gwas_fp, n_samples):
     beta_values = np.array([beta_dict.get(x) for x in simulated_df.columns])
     prs = simulated_df.apply(lambda x: (x*beta_values).sum(), axis=1)
     simulated_df['PRS'] = prs
+
+    # Calculate risk class from risk score percentile
+    def perc_to_risk(entry):
+        if entry <= risk_prob[0] * 100:
+            return risk_labels[0]
+        elif entry <= risk_prob[0] * 100 + risk_prob[1] * 100:
+            return risk_labels[1]
+        else:
+            return risk_labels[2]
+
+    # Get percentiles of PRS and conver to risk class
+    if use_beta:
+        percs = pd.Series([percentileofscore(prs, a, 'strict') for a in prs])
+        indiv_class = percs.apply(perc_to_risk)
+
     
     # Creating label
     simulated_df['Class'] = indiv_class
     
     # Saving simulated data to outpath
-    sim_fp = outpath+'/simulated_data.csv'
+    sim_fp = outpath+f'/{outname}.csv'
     simulated_df.to_csv(sim_fp, index=False)
     
     return sim_fp

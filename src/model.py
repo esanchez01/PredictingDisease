@@ -29,15 +29,17 @@ import visualize_data as vd
 
 
 
-def build_model(sim_fp, model_fp, outpath):
+def build_model(train_sim_fp, test_gwas_fp, outpath, test_sim_fp=None):
     """
-    Builds a logistic regression model for 
-    genetic SNP data
+    Builds models on training GWAS simulation with the SNP subset
+    given by the test GWAS summary statistics
     
-    :param fp: Filepath to simulated data
-    :param fp: Filepath to model GWAS data
-    :param cols: SNP column names to keep
-    :returns: Model accuracy
+    :param train_sim_fp: Filepath to train GWAS simulated data
+    :param test_gwas_fp: Filepath to test GWAS data summary data
+    :param outpath: Path to save outputs to
+    :param test_sim_fp: Filepath to test GWAS simulated data, if None
+    then splits simulated training data into a train/test split
+    :returns: Dictionary of model types and fit models
     """
     
     print('Building and testing model..')
@@ -45,19 +47,28 @@ def build_model(sim_fp, model_fp, outpath):
     label_cols = ['Class', 'PRS']
     
     # Loading in model GWAS data
-    model_data = pd.read_csv(model_fp, usecols=['variant_id'])
+    model_data = pd.read_csv(test_gwas_fp, usecols=['variant_id'])
     model_snps = model_data['variant_id'].unique()
     
     # Loading in simulated data and filtering to model SNPs
-    df = pd.read_csv(sim_fp)
-    sim_snps = df.drop(label_cols, axis=1).columns
+    train_data = pd.read_csv(train_sim_fp)
+    sim_snps = train_data.drop(label_cols, axis=1).columns
     keep_cols = list(set(sim_snps).intersection(model_snps))
-    df = df[keep_cols+label_cols]
+    train_data = train_data[keep_cols+label_cols]
     
-    # Creating training and test set
-    X = df.drop(label_cols, axis=1)
-    y = df['Class']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
+    # Creating training and test set, using simulated training data
+    # if it exists, otherwise splitting the train data into a training
+    # set and a test set
+    X = train_data.drop(label_cols, axis=1)
+    y = train_data['Class']
+    if not test_sim_fp:
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
+    else:
+        X_train = X
+        y_train = y
+        test_data = pd.read_csv(test_sim_fp)[keep_cols+label_cols]
+        X_test = test_data.drop(label_cols, axis=1)
+        y_test = test_data['Class']
     
     model_params = json.load(open('config/model-params.json', 'r'))
     results = pd.DataFrame()
@@ -91,8 +102,8 @@ def build_model(sim_fp, model_fp, outpath):
     
     results.to_csv(outpath+'/results.csv')
     print('\nFull model results saved at {}'.format(outpath))
-    
-    
+
+
 
 def get_model_results(model_params, model_name, sklearn_model, X_train, X_test, y_train, y_test):
     """
