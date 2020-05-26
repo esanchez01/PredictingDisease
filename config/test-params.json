@@ -6,6 +6,14 @@
         "Coronary Artery Disease": {
             "train_data": "testdata/gwas/gwas_simulate.csv",
             "test_data": "testdata/gwas/gwas_model.csv"
+        },
+        "Alzheimer's Disease": {
+            "train_data": "testdata/gwas/alzheimers1_EFO_0000249.csv",
+            "test_data": "testdata/gwas/alzheimers2_EFO_1001870.csv"
+        },
+        "Diabetes Mellitus": {
+            "train_data": "testdata/gwas/diabetesmellitus_EFO_0000400.csv",
+            "test_data": "testdata/gwas/diabetesmellitustype1_EFO_0001359.csv"
         }
     }
 }
