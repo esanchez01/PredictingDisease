@@ -97,7 +97,7 @@ def build_model(train_sim_fp, test_gwas_fp, outpath, test_sim_fp=None):
     roc = vd.plot_multiclass_roc('SVM', finalModels['SVC'], X_test, y_test, 3, (10, 6))
     roc.savefig(outpath+'/SVM_ROC_plot.png')
     
-    pr = vd.plot_precision_recall('SVM', finalModels['SVC'], X_test, y_test, 3)
+    pr = vd.plot_precision_recall('SVM', finalModels['SVC'], X_test, y_test, 3, (10, 6))
     pr.savefig(outpath+'/SVM_PR_plot.png')
     
     results.to_csv(outpath+'/results.csv')

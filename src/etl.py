@@ -197,6 +197,7 @@ def get_data(train_data, test_data, outpath, max_p_value, n_samples, test=False)
         train_data, test_data = get_gwas_trait(train_data, test_data, max_p_value, outpath)
     
     # Creating simulated data
-    sim_fp = simulate_data(outpath, train_data, n_samples)
+    outname = train_data.split('/')[-1][:-4]
+    sim_fp = simulate_data(outpath, outname, train_data, n_samples)
     
     return sim_fp, test_data

@@ -97,12 +97,14 @@ def plot_multiclass_roc(clf_name, clf, X_test, y_test, n_classes, figsize=(17, 6
     ax.plot([0, 1], [0, 1], 'k--')
     ax.set_xlim([0.0, 1.0])
     ax.set_ylim([0.0, 1.05])
-    ax.set_xlabel('False Positive Rate')
-    ax.set_ylabel('True Positive Rate')
-    ax.set_title('ROC Curve for ' + clf_name)
+    ax.tick_params(axis="x", labelsize=20)
+    ax.tick_params(axis="y", labelsize=20)
+    ax.set_xlabel('False Positive Rate', fontsize=20, fontweight='bold')
+    ax.set_ylabel('True Positive Rate', fontsize=20, fontweight='bold')
+    ax.set_title('ROC Curve for ' + clf_name, fontsize=30, fontweight='bold')
     for i in range(n_classes):
-        ax.plot(fpr[i], tpr[i], label='ROC curve (area = %0.2f) for label %s' % (roc_auc[i], classes_dict[i]))
-    ax.legend(loc="best")
+        ax.plot(fpr[i], tpr[i], label='ROC curve (area = %0.2f) for class %s' % (roc_auc[i], classes_dict[i]), linewidth=5.0)
+    ax.legend(loc="best", prop=dict(size=18))
     ax.grid(alpha=.4)
     sns.despine()
     plt.show()
@@ -157,40 +159,57 @@ def plot_precision_recall(clf_name, clf, X_test, y_test, n_classes, figsize=(7, 
     average_precision["micro"] = average_precision_score(y_test_dummies, y_score,
                                                          average="micro")
     
-    # setup plot details
-    colors = cycle(['navy', 'turquoise', 'darkorange', 'cornflowerblue', 'teal'])
-    plt.figure(figsize=figsize)
-    f_scores = np.linspace(0.2, 0.8, num=4)
-    lines = []
-    labels = []
-    for f_score in f_scores:
-        x = np.linspace(0.01, 1)
-        y = f_score * x / (2 * x - f_score)
-        l, = plt.plot(x[y >= 0], y[y >= 0], color='gray', alpha=0.2)
-        plt.annotate('f1={0:0.1f}'.format(f_score), xy=(0.9, y[45] + 0.02))
+#     # setup plot details
+#     colors = cycle(['navy', 'turquoise', 'darkorange', 'cornflowerblue', 'teal'])
+#     plt.figure(figsize=figsize)
+#     f_scores = np.linspace(0.2, 0.8, num=4)
+#     lines = []
+#     labels = []
+#     for f_score in f_scores:
+#         x = np.linspace(0.01, 1)
+#         y = f_score * x / (2 * x - f_score)
+#         l, = plt.plot(x[y >= 0], y[y >= 0], color='gray', alpha=0.2)
+#         plt.annotate('f1={0:0.1f}'.format(f_score), xy=(0.9, y[45] + 0.02))
     
-    lines.append(l)
-    labels.append('iso-f1 curves')
-    l, = plt.plot(recall["micro"], precision["micro"], color='gold', lw=2)
-    lines.append(l)
-    labels.append('micro-average Precision-recall (area = {0:0.2f})'
-                  ''.format(average_precision["micro"]))
+#     lines.append(l)
+#     labels.append('iso-f1 curves')
+#     l, = plt.plot(recall["micro"], precision["micro"], color='gold', lw=2)
+#     lines.append(l)
+#     labels.append('micro-average Precision-recall (area = {0:0.2f})'
+#                   ''.format(average_precision["micro"]))
     
-    for i, color in zip(range(n_classes), colors):
-        l, = plt.plot(recall[i], precision[i], color=color, lw=2)
-        lines.append(l)
-        labels.append('Precision-recall for class {0} (area = {1:0.2f})'
-                      ''.format(classes_dict[i], average_precision[i]))
+#     for i, color in zip(range(n_classes), colors):
+#         l, = plt.plot(recall[i], precision[i], color=color, lw=2)
+#         lines.append(l)
+#         labels.append('Precision-recall for class {0} (area = {1:0.2f})'
+#                       ''.format(classes_dict[i], average_precision[i]))
     
     # plot of the P-R curve for each class
-    fig = plt.gcf()
-    fig.subplots_adjust(bottom=0.25)
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-    plt.title('Extension of Precision-Recall Curve to Multi-Class for ' + clf_name)
-    plt.legend(lines, labels, loc=(0, -.38), prop=dict(size=14))
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.plot([0, 1], [1, 0], 'k--')
+    ax.set_xlim([0.0, 1.0])
+    ax.set_ylim([0.0, 1.05])
+    ax.tick_params(axis="x", labelsize=20)
+    ax.tick_params(axis="y", labelsize=20)
+    ax.set_xlabel('Recall', fontsize=20, fontweight='bold')
+    ax.set_ylabel('Precision', fontsize=20, fontweight='bold')
+    ax.set_title('Precision-Recall Curve for ' + clf_name, fontsize=30, fontweight='bold')
+    for i in range(n_classes):
+        ax.plot(recall[i], precision[i], label='Precision-recall for class {0} (area = {1:0.2f})'
+                      ''.format(classes_dict[i], average_precision[i]), linewidth=5.0)
+    ax.legend(loc="best", prop=dict(size=18))
+    ax.grid(alpha=.4)
+    sns.despine()
     plt.show()
+    
+#     fig = plt.gcf()
+#     fig.subplots_adjust(bottom=0.25)
+#     plt.xlim([0.0, 1.0])
+#     plt.ylim([0.0, 1.05])
+#     plt.xlabel('Recall', fontsize=20, fontweight='bold')
+#     plt.ylabel('Precision', fontsize=20, fontweight='bold')
+#     plt.title('Extension of Precision-Recall Curve to Multi-Class for ' + clf_name, fontsize=30, fontweight='bold')
+#     plt.legend(lines, labels, loc=(0, -.48), prop=dict(size=20))
+#     plt.show()
     
     return fig
