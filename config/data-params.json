@@ -4,16 +4,16 @@
     "outpath": "./data/out",
     "diseases": {
         "Coronary Artery Disease": {
-            "train_data": "EFO_0001645",
-            "test_data": "EFO_0000378"
+            "train_data": "testdata/coronary_artery/EFO_0001645.csv",
+            "test_data": "testdata/coronary_artery/EFO_0000378.csv"
         },
         "Alzheimer's Disease": {
-            "train_data": "EFO_0000249",
-            "test_data": "EFO_1001870"
+            "train_data": "testdata/alzheimer's/EFO_0000249.csv",
+            "test_data": "testdata/alzheimer's/EFO_1001870.csv"
         },
         "Diabetes Mellitus": {
-            "train_data": "EFO_0000400",
-            "test_data": "EFO_0001359"
+            "train_data": "testdata/diabetes_type1_melittus/EFO_0000400.csv",
+            "test_data": "testdata/diabetes_type1_melittus/EFO_0001359.csv"
         }
     }
 }
