@@ -8,6 +8,8 @@ such as KDE plots, histograms, and scatter plots.
 # Importing libraries
 import pandas as pd
 import numpy as np
+import matplotlib
+matplotlib.use('Agg', warn=False)
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -18,6 +20,11 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import average_precision_score
 from itertools import cycle
+
+# Suppress warnings
+import warnings
+warnings.simplefilter(action='ignore', category=UserWarning)
+
 
 
 

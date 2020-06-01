@@ -24,9 +24,9 @@ PROJECT
 │   ├── model.py
 │   └── visualize_data.py
 ├── testdata
-│   └── gwas
-│       ├── gwas_model.csv
-│       └── gwas_simulate.csv
+│   ├── alzheimer's
+│   ├── coronary_artery
+│   └── diabetes_type1_melittus
 ├── .gitignore
 ├── README.md
 ├── requirements.txt
@@ -65,6 +65,16 @@ PROJECT
 * `model-params.json`: Contains the (sklearn) models that are tested, and the parameters to use for each model.
 
 * `test-params.json`: Parameters for preparing test data for model building
+
+### `testdata`
+
+This directory contains two summary data files from the GWAS catalog for different diseases, one is used for building a training set and the other is use for a test set. Which is which can be found in the `data-params.json` configuration file (and changed).
+
+* `alzheimer's`: Contains two summary statistics CSV's from GWAS studies on Alzheimer's Disease.
+
+* `coronary_artery`: Contains two summary statistics CSV's from GWAS studies on Coronary Artery Disease.
+
+* `diabetes_type1_melittus`: Contains two summary statistics CSV's from GWAS studies on Diabetes Type I.
 
 ### `references`
 

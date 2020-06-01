@@ -100,6 +100,9 @@ def main(targets):
         if not os.path.exists(cfg['outpath']):
             os.makedirs(cfg['outpath'])
         for disease, params in cfg['diseases'].items():
+            print('-' * 80)
+            print(disease)
+            print('-' * 80)
             diseasepath = cfg['outpath'] + f'/{disease}'
             fps = get_data(params['train_data'], params['test_data'], diseasepath,
                            cfg['max_p_value'], cfg['n_samples'])
