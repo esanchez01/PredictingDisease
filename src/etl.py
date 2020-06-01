@@ -107,9 +107,9 @@ def simulate_data(outpath, outname, gwas_fp, n_samples, use_beta=False):
     risk_prob = [.6, .3, .1]
 
     # Defining values to scale probability of having SNP
-    low_risk_bias = np.arange(.1, .5, .05)
-    medium_risk_bias = np.arange(.5, .76, .05)
-    high_risk_bias = np.arange(.75, 1, .05)
+    low_risk_bias = np.arange(.6, .751, .05)
+    medium_risk_bias = np.arange(.75, .901, .05)
+    high_risk_bias = np.arange(.90, 1.01, .05)
     risk_bias = [low_risk_bias, medium_risk_bias, high_risk_bias]
 
     # Simulating

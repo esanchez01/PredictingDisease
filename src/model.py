@@ -10,6 +10,7 @@ for the model's performance.
 import pandas as pd
 import numpy as np
 import json
+import matplotlib.pyplot as plt
 # Models
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
@@ -82,25 +83,43 @@ def build_model(train_sim_fp, test_gwas_fp, outpath, test_sim_fp=None):
         "DecisionTreeClassifier": DecisionTreeClassifier
     }
     
+    prettyNames = {
+        "LogisticRegression": "Logistic Regression",
+        "KNeighborsClassifier": "K Nearest Neighbors",
+        "SVC": "Support Vector Machine",
+        "GaussianNB": "Gaussian Naive Bayes",
+        "RandomForestClassifier": "Random Forest Classifier",
+        "DecisionTreeClassifier": "Decision Tree Classifier"
+    }
+
+    rows = 2
+    cols = 3
+    roc_fig, roc_axs = plt.subplots(rows, cols, figsize=(15, 10))
+    pr_fig, pr_axs = plt.subplots(rows, cols, figsize=(15, 10))
+
     finalModels = {}
+    i = 0
     for name, model in modelNames.items():
+        row = i // cols
+        col = i % cols
         model_fit, model_results = get_model_results(model_params[name], name,
                                           model, X_train, X_test, y_train, y_test)
         model_results['Model Type'] = name
         results = results.append(model_results)
         finalModels[name] = model_fit
-    
-    
+
+        vd.plot_multiclass_roc(prettyNames[name], model_fit, X_test, y_test, 3, roc_axs[row, col])
+        vd.plot_precision_recall(prettyNames[name], model_fit, X_test, y_test, 3, pr_axs[row, col])
+        i += 1
+
+    roc_fig.savefig(f'{outpath}/ROC_plots.png')
+    pr_fig.savefig(f'{outpath}/PR_plots.png')
     
     
     # Saving model plots for SVM
-    roc = vd.plot_multiclass_roc('SVM', finalModels['SVC'], X_test, y_test, 3, (10, 6))
-    roc.savefig(outpath+'/SVM_ROC_plot.png')
     
-    pr = vd.plot_precision_recall('SVM', finalModels['SVC'], X_test, y_test, 3, (10, 6))
-    pr.savefig(outpath+'/SVM_PR_plot.png')
     
-    results.to_csv(outpath+'/results.csv')
+    results.to_csv(f'{outpath}/results.csv')
     print('\nFull model results saved at {}'.format(outpath))
 
 
