@@ -8,6 +8,8 @@ such as KDE plots, histograms, and scatter plots.
 # Importing libraries
 import pandas as pd
 import numpy as np
+import matplotlib
+matplotlib.use('Agg', warn=False)
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -18,6 +20,11 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import average_precision_score
 from itertools import cycle
+
+# Suppress warnings
+import warnings
+warnings.simplefilter(action='ignore', category=UserWarning)
+
 
 
 
@@ -51,11 +58,11 @@ def plot_risk_across_classes(fp):
     sns.kdeplot(simulated_bias_df[simulated_bias_df['Class'] == 2]['PRS'], label="High Risk")
     plt.title('Distribution of PRS Across Classes')
     plt.xlabel('Polygenic Risk Score')
-    plt.ylabel('Normalized Frequency');
+    plt.ylabel('Normalized Frequency')
     
 
     
-def plot_multiclass_roc(clf_name, clf, X_test, y_test, n_classes, figsize=(17, 6)):
+def plot_multiclass_roc(clf_name, clf, X_test, y_test, n_classes, ax):
     """
     Plots the multiclass version of the Receiver Operating Characteristic (ROC) 
     curve, which shows the connection/trade-off between 
@@ -67,6 +74,7 @@ def plot_multiclass_roc(clf_name, clf, X_test, y_test, n_classes, figsize=(17, 6
     :param y_test: Test data of the labels
     :param n_classes: Number of classes
     :param figsize: Size of the ROC curve plot
+    :param ax: Axis of subplot to save plot to, otherwise will create new figure
     """
     
     # try to run decision_function(), which is contained in 
@@ -85,6 +93,7 @@ def plot_multiclass_roc(clf_name, clf, X_test, y_test, n_classes, figsize=(17, 6
     tpr = dict()
     roc_auc = dict()
     classes_dict = {0: 'Low Risk', 1: 'Medium Risk', 2: 'High Risk'}
+    classes_color = {0: 'Green', 1: 'Yellow', 2: 'Red'}
 
     # one-hot encode labels to determine ROC curve
     y_test_dummies = pd.get_dummies(y_test, drop_first=False).values
@@ -93,23 +102,25 @@ def plot_multiclass_roc(clf_name, clf, X_test, y_test, n_classes, figsize=(17, 6
         roc_auc[i] = auc(fpr[i], tpr[i])
 
     # plot of the ROC for each class
-    fig, ax = plt.subplots(figsize=figsize)
     ax.plot([0, 1], [0, 1], 'k--')
+    ax.lines[0].set_linestyle=('--')
     ax.set_xlim([0.0, 1.0])
     ax.set_ylim([0.0, 1.05])
-    ax.set_xlabel('False Positive Rate')
-    ax.set_ylabel('True Positive Rate')
-    ax.set_title('ROC Curve for ' + clf_name)
+    ax.tick_params(axis="x")
+    ax.tick_params(axis="y")
+    ax.set_xlabel('False Positive Rate', fontweight='bold')
+    ax.set_ylabel('True Positive Rate', fontweight='bold')
+    ax.set_title(clf_name, fontweight='bold')
     for i in range(n_classes):
-        ax.plot(fpr[i], tpr[i], label='ROC curve (area = %0.2f) for label %s' % (roc_auc[i], classes_dict[i]))
-    ax.legend(loc="best")
+        sns.lineplot(fpr[i], tpr[i], label='%s (Area = %0.2f)' % (classes_dict[i], roc_auc[i]),
+                     ax=ax, color=classes_color[i])
+    ax.legend(loc='bottom right')
     ax.grid(alpha=.4)
-    sns.despine()
-    plt.show()
+    sns.despine(ax=ax)
 
     
     
-def plot_precision_recall(clf_name, clf, X_test, y_test, n_classes, figsize=(7, 8)):
+def plot_precision_recall(clf_name, clf, X_test, y_test, n_classes, ax):
     """
     Plots the multiclass version of the Precision-Recall (P-R) 
     curve, which shows the tradeoff between precision and recall 
@@ -122,6 +133,7 @@ def plot_precision_recall(clf_name, clf, X_test, y_test, n_classes, figsize=(7, 
     :param y_test: Test data of the labels
     :param n_classes: Number of classes
     :param figsize: Size of the ROC curve plot
+    :param ax: Axis of subplot to save plot to, otherwise will create new figure
     """
     
     # try to run decision_function(), which is contained in 
@@ -140,6 +152,7 @@ def plot_precision_recall(clf_name, clf, X_test, y_test, n_classes, figsize=(7, 
     recall = dict()
     average_precision = dict()
     classes_dict = {0: 'Low Risk', 1: 'Medium Risk', 2: 'High Risk'}
+    classes_color = {0: 'Green', 1: 'Yellow', 2: 'Red'}
 
     # one-hot encode labels to determine ROC curve
     y_test_dummies = pd.get_dummies(y_test, drop_first=False).values
@@ -154,41 +167,55 @@ def plot_precision_recall(clf_name, clf, X_test, y_test, n_classes, figsize=(7, 
         y_score.ravel())
     average_precision["micro"] = average_precision_score(y_test_dummies, y_score,
                                                          average="micro")
-    print('Average precision score, micro-averaged over all classes: {0:0.2f}'
-          .format(average_precision["micro"]))   
     
-    # setup plot details
-    colors = cycle(['navy', 'turquoise', 'darkorange', 'cornflowerblue', 'teal'])
-    plt.figure(figsize=figsize)
-    f_scores = np.linspace(0.2, 0.8, num=4)
-    lines = []
-    labels = []
-    for f_score in f_scores:
-        x = np.linspace(0.01, 1)
-        y = f_score * x / (2 * x - f_score)
-        l, = plt.plot(x[y >= 0], y[y >= 0], color='gray', alpha=0.2)
-        plt.annotate('f1={0:0.1f}'.format(f_score), xy=(0.9, y[45] + 0.02))
+#     # setup plot details
+#     colors = cycle(['navy', 'turquoise', 'darkorange', 'cornflowerblue', 'teal'])
+#     plt.figure(figsize=figsize)
+#     f_scores = np.linspace(0.2, 0.8, num=4)
+#     lines = []
+#     labels = []
+#     for f_score in f_scores:
+#         x = np.linspace(0.01, 1)
+#         y = f_score * x / (2 * x - f_score)
+#         l, = plt.plot(x[y >= 0], y[y >= 0], color='gray', alpha=0.2)
+#         plt.annotate('f1={0:0.1f}'.format(f_score), xy=(0.9, y[45] + 0.02))
     
-    lines.append(l)
-    labels.append('iso-f1 curves')
-    l, = plt.plot(recall["micro"], precision["micro"], color='gold', lw=2)
-    lines.append(l)
-    labels.append('micro-average Precision-recall (area = {0:0.2f})'
-                  ''.format(average_precision["micro"]))
+#     lines.append(l)
+#     labels.append('iso-f1 curves')
+#     l, = plt.plot(recall["micro"], precision["micro"], color='gold', lw=2)
+#     lines.append(l)
+#     labels.append('micro-average Precision-recall (area = {0:0.2f})'
+#                   ''.format(average_precision["micro"]))
     
-    for i, color in zip(range(n_classes), colors):
-        l, = plt.plot(recall[i], precision[i], color=color, lw=2)
-        lines.append(l)
-        labels.append('Precision-recall for class {0} (area = {1:0.2f})'
-                      ''.format(classes_dict[i], average_precision[i]))
+#     for i, color in zip(range(n_classes), colors):
+#         l, = plt.plot(recall[i], precision[i], color=color, lw=2)
+#         lines.append(l)
+#         labels.append('Precision-recall for class {0} (area = {1:0.2f})'
+#                       ''.format(classes_dict[i], average_precision[i]))
     
     # plot of the P-R curve for each class
-    fig = plt.gcf()
-    fig.subplots_adjust(bottom=0.25)
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-    plt.title('Extension of Precision-Recall Curve to Multi-Class for ' + clf_name)
-    plt.legend(lines, labels, loc=(0, -.38), prop=dict(size=14))
-    plt.show()
+    ax.plot([0, 1], [1, 0], 'k--')
+    ax.lines[0].set_linestyle=('--')
+    ax.set_xlim([0.0, 1.0])
+    ax.set_ylim([0.0, 1.05])
+    ax.tick_params(axis="x")
+    ax.tick_params(axis="y")
+    ax.set_xlabel('Recall', fontweight='bold')
+    ax.set_ylabel('Precision', fontweight='bold')
+    ax.set_title(clf_name, fontweight='bold')
+    for i in range(n_classes):
+        sns.lineplot(recall[i], precision[i], label='%s (Area = %0.2f)' % (classes_dict[i], average_precision[i]),
+                     ax=ax, color=classes_color[i])
+    ax.legend(loc='bottom right')
+    ax.grid(alpha=.4)
+    sns.despine(ax=ax)
+    
+#     fig = plt.gcf()
+#     fig.subplots_adjust(bottom=0.25)
+#     plt.xlim([0.0, 1.0])
+#     plt.ylim([0.0, 1.05])
+#     plt.xlabel('Recall', fontsize=20, fontweight='bold')
+#     plt.ylabel('Precision', fontsize=20, fontweight='bold')
+#     plt.title('Extension of Precision-Recall Curve to Multi-Class for ' + clf_name, fontsize=30, fontweight='bold')
+#     plt.legend(lines, labels, loc=(0, -.48), prop=dict(size=20))
+#     plt.show()

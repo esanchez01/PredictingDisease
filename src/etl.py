@@ -1,17 +1,10 @@
 """ Data Ingestion & Wrangling
 
-etl.py [TODO: description]
+etl.py: Library code to ingest data from the GWAS Catalog 
+(https://www.ebi.ac.uk/gwas/), creates simulated populations 
+and prepares for model building.
 
 """
-
-# NOTE: The below code is written to work with UK10K data. Unfortunately,
-#       the data has not become available and it's looking like it won't 
-#       be coming in time. Therefore, we decided to simulate the data –
-#       the function simulate_data() does this. This ultimately removes
-#       the need for the rest of the functions, including the driver function.
-#       We apologize for the confusion and the disorganization. We do not want 
-#       to discard everything until we know the UK10K will for sure not be 
-#       coming in time. This will be fixed by the next checkpoint.
 
 
 # Importing libraries
@@ -20,50 +13,104 @@ import numpy as np
 import os
 import re
 import gzip
+from scipy.stats import percentileofscore
 import shutil
 import subprocess as sp
-
-# Importing scripts
-#from src import read_data as rd
-
+import requests
+import json
 
 
-def simulate_data(gwas_fp, maf_fp, n_samples):
+
+def get_gwas_trait(train_id, test_id, max_p_value, outpath):
+    """
+    Gets the gwas data for the given trait ID
+    
+    :param train_id: EFO ID of trait to use for training data
+    :param test_id: EFO ID of trait to use for test data
+    :param outpath: Path to save data
+    """
+    print('Collecting GWAS data..')
+    
+    def add_snps_to_dfdict(snps, dfdict):
+        """Function to add each SNP data to dfdict"""
+        for snp in snps.values():
+            for col in dfdict.keys():
+                dfdict[col].append(snp[col])
+                
+    # Check whether the specified path exists or not
+    path_exists = os.path.exists(outpath) 
+    if not path_exists:
+        os.makedirs(outpath)
+    fps = []
+    for ID in [train_id, test_id]:
+        
+        # dictionary to contain data and build DataFrame
+        dfdict = {'variant_id': [], 'beta': [], 
+                  'p_value': [], 'effect_allele_frequency': [], 
+                  'effect_allele': [], 'other_allele': []}
+
+        # Counters
+        offset, page = 1000, 0
+
+        # First page
+        try:
+            req = requests.get(f'https://www.ebi.ac.uk/gwas/summary-statistics/api/traits/{ID}' +
+                               f'/associations?start={page}&size={offset}&p_upper={max_p_value}').content
+            snps = json.loads(req)['_embedded']['associations']
+            add_snps_to_dfdict(snps, dfdict)
+        
+        # If GWAS study does not have available summary statistics
+        except:
+            raise Exception(f'GWAS Study with ID {ID} is not available on summary statistics API.\
+                              Try manually downloading the Catalog Data.')
+
+        # Continually query pages from the API until last page is reached
+        while len(snps) == offset:
+            page += offset
+            req = requests.get(f'https://www.ebi.ac.uk/gwas/summary-statistics/api/traits/{ID}' +
+                               f'/associations?start={page}&size={offset}&p_upper={max_p_value}').content
+            try:
+                snps = json.loads(req)['_embedded']['associations']
+                add_snps_to_dfdict(snps, dfdict)
+            except:
+                break
+
+        # Saving data
+        snp_df = pd.DataFrame(dfdict)
+        snp_df.to_csv(outpath+f'/{ID}.csv', index=False)
+        fps.append(outpath+f'/{ID}.csv')
+        print(f'- {ID} collected.')
+    return fps
+
+
+
+def simulate_data(outpath, outname, gwas_fp, n_samples, use_beta=False):
     """
     Simulates a data set of individuals at different disease 
     risk levels
     
-    :param gwas_fp: Filepath to GWAS TSV file
-    :param maf_fp: Filepath to SNP minor allele frequency file
+    :param outpath: File path to save simulated data
+    :param gwas_fp: Filepath to GWAS TSV/CSV file
     :param n_samples: Number of individuals to simulate
-    :returns: Simulated data frame
+    :returns: Simulated data filepath
     """
-    
+    print('Simulating population..')
     # Reading and cleaning GWAS data
-    gwas = pd.read_csv(gwas_fp, sep='\t')
-    gwas = gwas.dropna(subset=['OR or BETA'], axis=0)
-    
-    # Reading MAF data
-    maf_cols = ['Variation ID', 'Minor Allele Global Frequency']
-    maf = pd.read_csv(maf_fp, sep='\t', usecols=maf_cols)
-    
-    # Cleaning MAF data
-    maf = maf.drop_duplicates(subset=maf_cols)
-    maf = maf[maf['Minor Allele Global Frequency'] != 'None']
-    maf['Minor Allele Global Frequency'] = (maf['Minor Allele Global Frequency']
-                                               .astype(float))
+    gwas = pd.read_csv(gwas_fp)
+    gwas = gwas.dropna(subset=['beta', 'effect_allele_frequency'], axis=0)
 
     # Creating labels that will be associated with disease risk
     # 0=Low   1=Mid   2=High
     risk_labels = [0, 1, 2]
 
     # Defining the probability of being a label
-    # Low=55%   Mid=30%   High=15%
-    risk_prob = [.55, .3, .15]
+    risk_prob = [.6, .3, .1]
 
-    # Defining values to increase probability of having SNP
-    # Low=0%   Mid=50%   High=100%
-    risk_bias = [1, 1.5, 2]
+    # Defining values to scale probability of having SNP
+    low_risk_bias = np.arange(.6, .751, .05)
+    medium_risk_bias = np.arange(.75, .901, .05)
+    high_risk_bias = np.arange(.90, 1.01, .05)
+    risk_bias = [low_risk_bias, medium_risk_bias, high_risk_bias]
 
     # Simulating
     indiv_rows_bias = []
@@ -71,282 +118,86 @@ def simulate_data(gwas_fp, maf_fp, n_samples):
     N = n_samples
     for _ in range(N):
         label = np.random.choice(a=risk_labels, p=risk_prob)
-        bias = risk_bias[label]
-        has_snps = (maf['Minor Allele Global Frequency']
-                    .apply(lambda x: np.random.choice(a=[0,1], p=[1-(x*bias), (x*bias)])))
+        bias = np.random.choice(risk_bias[label])
+        has_snps = (gwas['effect_allele_frequency']
+                    .apply(lambda x: 
+                           np.random.choice(a=[0,1], p=[1-(x*bias), (x*bias)])))
         indiv_rows_bias.append(has_snps.values)
-        indiv_class.append(label)
+        if not use_beta:
+            indiv_class.append(label)
     
     # Creating dataframe
-    simulated_df = pd.DataFrame(indiv_rows_bias, columns=maf['Variation ID'])
+    simulated_df = pd.DataFrame(indiv_rows_bias, columns=gwas['variant_id'])
     simulated_df.columns.name = ''
     
     # Calculating polygenic risk score
-    beta_dict = gwas.set_index('SNPS')['OR or BETA'].to_dict()
+    beta_dict = gwas.set_index('variant_id')['beta'].to_dict()
     beta_values = np.array([beta_dict.get(x) for x in simulated_df.columns])
     prs = simulated_df.apply(lambda x: (x*beta_values).sum(), axis=1)
     simulated_df['PRS'] = prs
+
+    # Calculate risk class from risk score percentile
+    def perc_to_risk(entry):
+        if entry <= risk_prob[0] * 100:
+            return risk_labels[0]
+        elif entry <= risk_prob[0] * 100 + risk_prob[1] * 100:
+            return risk_labels[1]
+        else:
+            return risk_labels[2]
+
+    # Get percentiles of PRS and conver to risk class
+    if use_beta:
+        percs = pd.Series([percentileofscore(prs, a, 'strict') for a in prs])
+        indiv_class = percs.apply(perc_to_risk)
+
     
     # Creating label
     simulated_df['Class'] = indiv_class
     
-    return simulated_df
-
+    # Saving simulated data to outpath
+    sim_fp = outpath+f'/{outname}.csv'
+    simulated_df.to_csv(sim_fp, index=False)
     
+    return sim_fp
+
     
     
 # ---------------------------------------------------------------------
 # Driver Function
 # ---------------------------------------------------------------------
-def get_data_test_simulated(gwas_fp, maf_fp, n_samples, outpath):
+
+def get_data(train_data, test_data, outpath, max_p_value, n_samples, test=False):
     """
     Reads in the desired data in test-params.json 
     and uses the configuration to download 
     the various file types and corresponding CSV files.
 
-    :param gwas_fp: Filepath to GWAS TSV file
-    :param maf_fp: Filepath to SNP minor allele frequency file
-    :param n_samples: Number of individuals to simulate
-    :outpath: Path to save data frame
-    """
+    :param train_data: EFO ID of trait inside GWAS to download
+                          summary statistics to build simulation
+                          for model building, or path to GWAS TSV
+    :param test_data: EFO ID of trait inside GWAS to download
+                       summary statistics to build simulation
+                       for model evaluation, or path to GWAS TSV
+    :outpath: Path to save simulated data for training and testing
+    :max_p_value: p value threshold value for SNPs to be included
+    :n_samples: Number of samples to produce
+    :param test: Whether function call is for testing
     
-    # Check whether the specified path exists or not
-    data_folder_path = './data'
-    data_folder_path_exists = os.path.exists(data_folder_path) 
-    if not data_folder_path_exists:
-        os.mkdir(data_folder_path)
+    :returns: File paths to simulated data and model GWAS data
+    """
     
     # Check whether the specified path exists or not
     path_exists = os.path.exists(outpath) 
     if not path_exists:
-        os.mkdir(outpath)
-        
+        os.makedirs(outpath)
+    
+    # If EFO ids are passed in to function, first get CSV files for the traits
+    if train_data[:3] == 'EFO':
+        # Collecting GWAS data
+        train_data, test_data = get_gwas_trait(train_data, test_data, max_p_value, outpath)
+    
     # Creating simulated data
-    df = simulate_data(gwas_fp, maf_fp, n_samples)
+    outname = train_data.split('/')[-1][:-4] + '_simulated'
+    sim_fp = simulate_data(outpath, outname, train_data, n_samples)
     
-    # Saving dataframe to outpath
-    fp = outpath+'/simulated_data.csv'
-    df.to_csv(fp, index=False)
-    
-    return fp
-
-    
-    
-
-### CODE BELOW IS FOR UK10K, PLEASE READ NOTE ABOVE ###
-
-
-def prepare_vcf(fp):
-    """
-    Transforms a VCF file into a machine learning
-    read dataframe. Rows represent a specific sample
-    and contain binary values signifying whether
-    the sample has a particular SNP.
-    
-    :param fp: Filepath to VCF file
-    :returns: Dataframe
-    """
-    
-    # Reading VCF file into dataframe
-    vcf = rd.read_vcf(fp)
-    
-    # Creating identifier column 
-    # NOTE: Temporary, will be replaced by rsID
-    vcf['ID'] = vcf.apply(lambda x: str(x['#CHROM'])+':'+str(x['POS']), axis=1)
-
-    # Dropping unnecessary columns and transposing
-    drop_cols = ['#CHROM', 'POS', 'REF', 'ALT', 
-                 'QUAL', 'FILTER', 'INFO', 'FORMAT']
-    vcf = vcf.drop(drop_cols, axis=1).T
-
-    # Creating mappings for reference/alternate pairs
-    variant_map = {'0|0': 0, '1|0': 1, '0|1':1, '1|1':2}
-
-    # Wrangling data
-    vcf.columns = vcf.loc['ID', :]
-    vcf = vcf.drop('ID', axis=0).reset_index(drop=True)
-    vcf.columns.name = None
-    vcf = vcf.replace(variant_map)
-
-    return vcf
-
-
-
-def get_table_vcf_test(chromosome, outpath, file_type):
-    """
-    Gets the VCF from the given testdata directory,
-    reads in the VCF as a DataFrame and converts it to a CSV file,
-    and saves the VCF and CSV files to a specified directory.
-
-    :param chromosome: The chromosome number
-    :param outpath: The path to save data
-    :param file_type: The file type of the genetic file
-    """
-    
-    # given test data input and corresponding output
-    in_fn  = './testdata/vcf/chr22_test.vcf.gz'
-    out_fn = './data/raw/vcf/chr22_test.vcf'
-    
-    # Check whether the specified path exists or not
-    path_exists = os.path.exists(outpath) 
-    if not path_exists:
-        print('making outpath:', outpath)
-        os.mkdir(outpath)
-    
-    # Check whether .vcf.gz file is already unzipped
-    unzip_file = os.path.exists(out_fn)
-    print('Does chr22_test.vcf exist?', unzip_file)
-    if not unzip_file:
-        print('converting .vcf.gz file to .vcf file')
-        with gzip.open(in_fn, 'rb') as f_in, open(out_fn, 'wb') as f_out:
-            shutil.copyfileobj(f_in, f_out)
-
-
-
-def filter_vcf(vcf_path, maf, geno, mind, tsv_path, **kwargs):
-    """
-    Runs script shell file to run plink2 commands to
-    filter the VCF file.
-    
-    :param vcf_path: The file path to the input VCF file
-    :param maf: The minor allele frequency
-    :param geno: The value to filter variants with missing call rates exceeding its value
-    :param mind: The value to filter samples with missing call rates exceeding its value
-    :param kwargs: Extra key word arguments
-    :param tsv_path: The file path to the file containing relevant SNPs from the GWAS
-    :returns: output of script
-    """
-    
-    # calls helper functions to get the relevant SNPs as a string
-    snps_str = ', '.join(pd.read_csv(tsv_path, sep='\t')['SNPS'])
-    
-    # opens script shell file
-    print('opening script')
-    cmd_str = ("./src/scripts/filter_snps.sh " +
-               vcf_path + " " + snps_str + " " +
-               str(maf) + " " + str(geno) + " " + str(mind))
-    proc = sp.Popen(cmd_str, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
-    
-    # runs script shell file
-    print('running script')
-    out_tuple = proc.communicate()
-    print('script finished running')
-    return out_tuple
-
-
-
-def filter_merge_by_chr(folder_path, vcf_files_dict, tsv_path, **kwargs):
-    """
-    Runs script shell file to run plink2 commands to filter each VCF file
-    in specified folder. Filters SNP IDs for the chromosome number each file
-    corresponds to. After filtering each file, merges all VCFs into one
-    file named merged.vcf in the target folder
-
-    :param folder_path: Folder containing the vcf files, and where the merged VCF file will be saved
-    :param vcf_files_dict: Dictionary mapping each chromosome number (1-22) to a VCF file path
-    :param tsv_path: The file path to the file containing relevant SNPs from the GWAS
-    :param kwargs: Extra key word arguments
-    :returns: output of script
-    """
-
-    # Read snps
-    snps = pd.read_csv(tsv_path, sep='\t')
-
-    # Make temporary folder to store filtered VCFs
-    folder_path = folder_path + "/" if folder_path[-1] != "/" else folder_path
-    temporary_path = folder_path + "temp_vcfs/"
-    if not os.path.exists(temporary_path):
-        os.mkdir(temporary_path)
-
-    # Filter each VCF and output filtered VCF into temporary folder
-    for chr_id, vcf_path in vcf_files_dict.items():
-        done = False
-        cur_snps = snps[snps['CHR_ID'] == chr_id]['SNPS'].unique().tolist()
-        while not done:
-            snps_str = ', '.join(cur_snps)
-            cmd_str = "plink2 --vcf " + folder_path + vcf_path + " --max-alleles 2 --make-bed --snps " + snps_str +\
-                      " --recode vcf --out " + temporary_path + "chr_" + chr_id
-            proc = sp.Popen(cmd_str, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
-            output = proc.communicate()
-            if output[1]:
-                missing_snp = re.findall('rs[0-9]+', str(output[1]))
-                if missing_snp:
-                    cur_snps.remove(missing_snp[0])
-                    print("Removed " + missing_snp[0])
-            else:
-                done = True
-
-
-    # Merge vcfs
-    merge_vcfs(temporary_path)
-
-    # Delete temporary folder
-    shutil.rmtree(temporary_path, ignore_errors=True)
-
-
-
-def merge_vcfs(folder_path):
-    """
-    Runs script shell file to merge vcfs into one vcf, creates
-    a file named merged.vcf.gz in the target folder
-
-    :param folder_path: Path to folder containing the vcf files
-    """
-    proc = sp.Popen('./src/scripts/merge_vcfs.sh ' + folder_path, shell=True)
-    out_tuple = proc.communicate()
-    return out_tuple
-
-
-
-# ---------------------------------------------------------------------
-# Driver Function
-# ---------------------------------------------------------------------
-def get_data_test(chromosomes, samples, outpath, file_types, **kwargs):
-    """
-    Reads in the desired data in test-params.json 
-    and uses the configuration to download 
-    the various file types and corresponding CSV files.
-
-    :param chromosomes: The chromosome numbers
-    :param samples: The sample numbers
-    :param outpath: The directory to which to save the data
-    :param file_types: The genetic file types
-    :param kwargs: Extra keyword arguments
-    """
-    
-    # Check whether the specified path exists or not
-    data_folder_path = './data'
-    data_folder_path_exists = os.path.exists(data_folder_path) 
-    if not data_folder_path_exists:
-        print('making data_folder_path')
-        os.mkdir(data_folder_path)
-    
-    # Check whether the specified path exists or not
-    path_exists = os.path.exists(outpath) 
-    if not path_exists:
-        print('making outpath:', outpath)
-        os.mkdir(outpath)
-        
-    # loop through each file type to create a saved data directory
-    for file_type in file_types:
-        # Check whether the specified savedir exists or not
-        savedir = outpath + '/' + file_type
-        savedir_exists = os.path.exists(savedir) 
-        if not savedir_exists:
-            print('making savedir:', savedir)
-            os.mkdir(savedir)
-    
-    # loop through each file type and chromosome to get table
-    for file_type in file_types:
-        print('get_data_test() - file_type:', file_type)
-        savedir = outpath + '/' + file_type
-        if file_type == 'vcf':
-            for chromosome in chromosomes:
-                get_table_vcf_test(chromosome, savedir, file_type)
-        elif file_type == 'bam':
-            for sample in samples:
-                get_table_bam_test(sample, savedir, file_type)
-        elif file_type == 'fastq':
-            for sample in samples:
-                get_table_fastq_test(sample, savedir, file_type)
-                get_table_fasta(sample, savedir, file_type)
+    return sim_fp, test_data
