@@ -152,7 +152,7 @@ def plot_precision_recall(clf_name, clf, X_test, y_test, n_classes, ax):
     recall = dict()
     average_precision = dict()
     classes_dict = {0: 'Low Risk', 1: 'Medium Risk', 2: 'High Risk'}
-    classes_color = {0: 'Green', 1: 'Yellow', 2: 'Red'}
+    classes_color = {0: 'Green', 1: 'Orange', 2: 'Red'}
 
     # one-hot encode labels to determine ROC curve
     y_test_dummies = pd.get_dummies(y_test, drop_first=False).values
