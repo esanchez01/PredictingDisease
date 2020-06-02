@@ -72,7 +72,7 @@ def build_model(train_sim_fp, test_gwas_fp, outpath, test_sim_fp=None):
         y_test = test_data['Class']
     
     model_params = json.load(open('config/model-params.json', 'r'))
-    results = pd.DataFrame()
+
     # Iterate through models
     modelNames = {
         "LogisticRegression": LogisticRegression,
@@ -98,14 +98,18 @@ def build_model(train_sim_fp, test_gwas_fp, outpath, test_sim_fp=None):
     pr_fig, pr_axs = plt.subplots(rows, cols, figsize=(15, 10))
 
     finalModels = {}
+    fullResults = pd.DataFrame()
+    shortResults = pd.DataFrame()
     i = 0
     for name, model in modelNames.items():
         row = i // cols
         col = i % cols
-        model_fit, model_results = get_model_results(model_params[name], name,
+        model_fit, model_short, model_full = get_model_results(model_params[name], name,
                                           model, X_train, X_test, y_train, y_test)
-        model_results['Model Type'] = name
-        results = results.append(model_results)
+        model_short['Model Type'] = name
+        model_full['Model Type'] = name
+        fullResults = fullResults.append(model_full)
+        shortResults = shortResults.append(model_short[['Model Type', '0', '1', '2']])
         finalModels[name] = model_fit
 
         vd.plot_multiclass_roc(prettyNames[name], model_fit, X_test, y_test, 3, roc_axs[row, col])
@@ -117,9 +121,8 @@ def build_model(train_sim_fp, test_gwas_fp, outpath, test_sim_fp=None):
     
     
     # Saving model plots for SVM
-    
-    
-    results.to_csv(f'{outpath}/results.csv')
+    shortResults.to_csv(f'{outpath}/short_results.csv')
+    fullResults.to_csv(f'{outpath}/full_results.csv')
     print('\nFull model results saved at {}'.format(outpath))
 
 
@@ -142,9 +145,16 @@ def get_model_results(model_params, model_name, sklearn_model, X_train, X_test, 
     
     # Making predictions
     preds = model.predict(X_test)
-    
+
+    # Get results by class
+    byClass = {str(x_class): [] for x_class in [0, 1, 2]}
+    yt = y_test.reset_index(drop=True)
+    ypreds = pd.Series(preds)
+    for x_class in [0, 1, 2]:
+        classFilter = yt == x_class
+        byClass[str(x_class)].append(np.mean(yt[classFilter] == ypreds[classFilter]))
     # Saving classification report
     target_names = ['Low Risk', 'Medium Risk', 'High Risk']
-    return (model, pd.DataFrame(classification_report(y_test, preds, 
-                                     target_names=target_names, 
-                                     output_dict=True)))
+    return (model,
+            pd.DataFrame(byClass),
+            pd.DataFrame(classification_report(y_test, preds, target_names=target_names, output_dict=True)))
