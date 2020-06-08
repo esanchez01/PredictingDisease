@@ -1,9 +1,21 @@
 # DSC180B
-Data Science Senior Project: Predicting Disease From Genetic Variation
+Data Science Capstone Project: Predicting Disease Risk Through Machine Learning
 
 ## Usage Instructions
 
-* Description of targets and using `run.py`
+In order to use the different components of this project, please run `python run.py` along with a target of your choice:
+
+    * `clean`: Cleans the data directory
+    * `data`: Downloads the data from GWAS Catalog according to data-params.json
+    * `simulate-one`: Simulates a SNP population for the training GWAS
+    * `simulate-both`: Simulates a SNP population for both the training GWAS and the test GWAS
+    * `model`: 
+        * If there is no simulated data for the test GWAS: 
+          Splits the training GWAS simulated data into a train and test subset. Model is trained on the training subset, filtered to only contain SNPs also present in the test GWAS, in order to simulate sampling. The model is then tested on the test subset and results are reported (and saved).
+        * If there is simulated data for the test GWAS (run via `simulate-both` target):
+          Model is trained on simulated data (filtered to contain SNPs present in both GWAS's) from the training GWAS. Model is tested on simulated data from the test GWAS and results are reported (and saved).
+    * `test-project`: Tests project using test data
+    * `run-project`: Runs entire project according to cofig files
 
 ## Description of Contents
 
@@ -35,18 +47,7 @@ PROJECT
 
 ### `root`
 
-* `run.py`: Python script to run main command, with the following targets:
-    * `clean`: Cleans the data directory
-    * `data`: Downloads the data from GWAS Catalog according to data-params.json
-    * `simulate-one`: Simulates a SNP population for the training GWAS
-    * `simulate-both`: Simulates a SNP population for both the training GWAS and the test GWAS
-    * `model`: 
-        * If there is no simulated data for the test GWAS: 
-          Splits the training GWAS simulated data into a train and test subset. Model is trained on the training subset, filtered to only contain SNPs also present in the test GWAS, in order to simulate sampling. The model is then tested on the test subset and results are reported (and saved).
-        * If there is simulated data for the test GWAS (run via `simulate-both` target):
-          Model is trained on simulated data (filtered to contain SNPs present in both GWAS's) from the training GWAS. Model is tested on simulated data from the test GWAS and results are reported (and saved).
-    * `test-project`: Tests project using test data
-    * `run-project`: Runs entire project according to cofig files
+* `run.py`: Python script to run main command.
 
 ### `src`
 
@@ -75,7 +76,3 @@ This directory contains two summary data files from the GWAS catalog for differe
 * `coronary_artery`: Contains two summary statistics CSV's from GWAS studies on Coronary Artery Disease.
 
 * `diabetes_type1_melittus`: Contains two summary statistics CSV's from GWAS studies on Diabetes Type I.
-
-### `references`
-
-* Data Dictionaries, references to external sources
