@@ -15,7 +15,7 @@ In order to use the different components of this project, please run `python run
    * If there is simulated data for the test GWAS (run via `simulate-both` target):
           Model is trained on simulated data (filtered to contain SNPs present in both GWAS's) from the training GWAS. Model is tested on simulated data from the test GWAS and results are reported (and saved).
 * `test-project`: Tests project using test data
-* `run-project`: Runs entire project according to cofig files
+* `run-project`: Runs entire project according to config files
 
 ## Description of Contents
 
