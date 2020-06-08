@@ -1,5 +1,6 @@
-# DSC180B
-Data Science Capstone Project: Predicting Disease Risk Through Machine Learning
+# Predicting Disease Risk Through Machine Learning
+
+Traditional epidemiology techniques, most notably polygenic risk scoring, have been used by researchers and well-known companies, such as Takeda, MiCom Labs, and 23andMe, to calculate the disease risk of patients and consumers. However, recent research has shown limitations in polygenic risk scoring due to its inability to model high dimensional data with complex interactions (Wai, 2019). As humans, millions of potentially disease-contributing genetic variants exist in the genome, so the inability to leverage such information limits the power of polygenic risk scoring to accurately determine the disease risk of individuals. In this project, the viability of machine learning in disease risk prediction for Coronary Artery Disease, Alzheimer’s, and Diabetes Mellitus is explored. It is shown how machine learning models, including Support Vector Machines (SVMs), Logistic Regression, K Nearest Neighbors, Decision Trees, Random Forest, and Gaussian Naive Bayes, compare in their ability to effectively predict disease risk and how they may offer alternate and possibly better methods over traditional techniques. 
 
 ## Usage Instructions
 
