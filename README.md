@@ -77,3 +77,11 @@ This directory contains two summary data files from the GWAS catalog for differe
 * `coronary_artery`: Contains two summary statistics CSV's from GWAS studies on Coronary Artery Disease.
 
 * `diabetes_type1_melittus`: Contains two summary statistics CSV's from GWAS studies on Diabetes Type I.
+
+### `notebooks`
+
+* `Build_Model.ipynb`: Notebook walking through the model building/validation process
+
+* `Simulate_Data.ipynb`: Notebook walking through the population simulation process
+
+* `Visualize_Data.ipynb`: Notebook walking through the visualization process
