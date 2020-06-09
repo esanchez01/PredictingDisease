@@ -30,8 +30,7 @@ PROJECT
 │   └── test-params.json
 ├── notebooks
 │   ├── Build_Model.ipynb
-│   ├── Simulate_Data.ipynb
-│   └── Visualize_Data.ipynb
+│   └── Simulate_Data.ipynb
 ├── src
 │   ├── etl.py
 │   ├── model.py
@@ -83,5 +82,3 @@ This directory contains two summary data files from the GWAS catalog for differe
 * `Build_Model.ipynb`: Notebook walking through the model building/validation process
 
 * `Simulate_Data.ipynb`: Notebook walking through the population simulation process
-
-* `Visualize_Data.ipynb`: Notebook walking through the visualization process
