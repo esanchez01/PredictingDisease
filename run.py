@@ -18,7 +18,6 @@ TEST_NAME = 'simulated_test'
 def load_params(fp):
     with open(fp) as fh:
         param = json.load(fh)
-
     return param
 
 def create_fp(fp, fname):
@@ -30,6 +29,7 @@ def create_fp(fp, fname):
 
 def extract_efo(fname):
     return fname.split('/')[-1][:-4]
+
 
 def main(targets):
 

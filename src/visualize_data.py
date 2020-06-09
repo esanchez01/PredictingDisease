@@ -1,4 +1,4 @@
-""" Data Processing
+""" Data Visualizations
 
 visualize_data.py: Library code to create data visualizations,
 such as KDE plots, histograms, and scatter plots.

@@ -1,6 +1,6 @@
-""" Data Processing
+""" Model Building
 
-process_data.py: Library code to construct a Support Vector 
+model.py: Library code to construct a Support Vector 
 Machine model on population SNP data and generate/save results 
 for the model's performance.
 
@@ -27,6 +27,26 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 # Importing scripts
 import visualize_data as vd
+
+
+
+modelNames = {
+      "LogisticRegression": LogisticRegression,
+      "KNeighborsClassifier": KNeighborsClassifier,
+      "SVC": SVC,
+      "GaussianNB": GaussianNB,
+      "RandomForestClassifier": RandomForestClassifier,
+      "DecisionTreeClassifier": DecisionTreeClassifier
+}
+    
+prettyNames = {
+      "LogisticRegression": "Logistic Regression",
+      "KNeighborsClassifier": "K Nearest Neighbors",
+      "SVC": "Support Vector Machine",
+      "GaussianNB": "Gaussian Naive Bayes",
+      "RandomForestClassifier": "Random Forest Classifier",
+      "DecisionTreeClassifier": "Decision Tree Classifier"
+}
 
 
 
@@ -74,24 +94,6 @@ def build_model(train_sim_fp, test_gwas_fp, outpath, test_sim_fp=None):
     model_params = json.load(open('config/model-params.json', 'r'))
 
     # Iterate through models
-    modelNames = {
-        "LogisticRegression": LogisticRegression,
-        "KNeighborsClassifier": KNeighborsClassifier,
-        "SVC": SVC,
-        "GaussianNB": GaussianNB,
-        "RandomForestClassifier": RandomForestClassifier,
-        "DecisionTreeClassifier": DecisionTreeClassifier
-    }
-    
-    prettyNames = {
-        "LogisticRegression": "Logistic Regression",
-        "KNeighborsClassifier": "K Nearest Neighbors",
-        "SVC": "Support Vector Machine",
-        "GaussianNB": "Gaussian Naive Bayes",
-        "RandomForestClassifier": "Random Forest Classifier",
-        "DecisionTreeClassifier": "Decision Tree Classifier"
-    }
-
     rows = 2
     cols = 3
     roc_fig, roc_axs = plt.subplots(rows, cols, figsize=(15, 10))
@@ -120,7 +122,7 @@ def build_model(train_sim_fp, test_gwas_fp, outpath, test_sim_fp=None):
     pr_fig.savefig(f'{outpath}/PR_plots.png')
     
     
-    # Saving model plots for SVM
+    # Saving model plots
     shortResults.to_csv(f'{outpath}/short_results.csv')
     fullResults.to_csv(f'{outpath}/full_results.csv')
     print('\nFull model results saved at {}'.format(outpath))
@@ -157,4 +159,6 @@ def get_model_results(model_params, model_name, sklearn_model, X_train, X_test, 
     target_names = ['Low Risk', 'Medium Risk', 'High Risk']
     return (model,
             pd.DataFrame(byClass),
-            pd.DataFrame(classification_report(y_test, preds, target_names=target_names, output_dict=True)))
+            pd.DataFrame(classification_report(y_test, preds, 
+                                               target_names=target_names, 
+                                               output_dict=True)))
